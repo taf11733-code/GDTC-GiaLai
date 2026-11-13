@@ -1,0 +1,2785 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HKPĐ Cấp Tỉnh - Đăng ký theo Môn</title>
+  <style>
+    /* ===== RESET & BIẾN MÀU ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --pri: #1565C0; --pri-dark: #0D47A1; --pri-lite: #E3F2FD;
+      --ok: #2E7D32; --warn: #F57F17; --err: #C62828; --info: #01579B;
+      --bg: #F5F7FB; --card: #FFFFFF;
+      --txt: #1A1A2E; --muted: #6B7280; --border: #E5E7EB;
+      --sh: 0 2px 12px rgba(0,0,0,.08); --sh2: 0 8px 32px rgba(0,0,0,.14);
+      --r: 12px; --rs: 8px;
+    }
+    body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); font-size:14px; line-height:1.5; min-height:100vh; }
+
+    /* ===== TOAST ===== */
+    #toasts { position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+    .toast { padding:11px 18px; border-radius:var(--rs); font-weight:600; font-size:13px; color:#fff; max-width:360px; display:flex; align-items:center; gap:10px; box-shadow:var(--sh2); animation:toastIn .3s ease; white-space:pre-line; }
+    .toast.ok  { background:var(--ok); }
+    .toast.err { background:var(--err); }
+    .toast.wn  { background:var(--warn); }
+    .toast.inf { background:var(--info); }
+    @keyframes toastIn { from { transform:translateX(110%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    @keyframes toastOut { to { transform:translateX(110%); opacity:0; } }
+
+    /* ===== LOADING ===== */
+    #overlay { position:fixed; inset:0; background:rgba(255,255,255,.85); z-index:8000; display:none; align-items:center; justify-content:center; }
+    .spin { width:46px; height:46px; border:4px solid var(--border); border-top-color:var(--pri); border-radius:50%; animation:spin .75s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ===== ĐĂNG NHẬP ===== */
+    #pg-login { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:linear-gradient(135deg,#1565C0,#0D47A1,#01579B); }
+    .login-box { background:#fff; border-radius:20px; padding:40px; width:100%; max-width:430px; box-shadow:var(--sh2); }
+    .login-logo { text-align:center; margin-bottom:28px; }
+    .login-logo .ico { width:70px; height:70px; background:linear-gradient(135deg,#FF6F00,#FFA000); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:30px; margin-bottom:12px; }
+    .login-logo h1 { font-size:20px; font-weight:800; color:var(--pri); line-height:1.3; }
+    .login-logo p { font-size:12px; color:var(--muted); margin-top:4px; }
+    .tab-group { display:flex; gap:6px; padding:4px; background:var(--bg); border-radius:var(--rs); margin-bottom:22px; }
+    .tab-btn { flex:1; padding:9px; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px; background:transparent; color:var(--muted); transition:.2s; }
+    .tab-btn.on { background:#fff; color:var(--pri); box-shadow:0 2px 6px rgba(0,0,0,.1); }
+
+    /* ===== FORM ===== */
+    .fg { margin-bottom:14px; }
+    .fg label { display:block; font-weight:600; font-size:12px; color:var(--txt); margin-bottom:5px; letter-spacing:.02em; }
+    .fg label .req { color:#ef4444; }
+    .fc { width:100%; padding:9px 13px; border:1.5px solid var(--border); border-radius:var(--rs); font-size:13px; color:var(--txt); background:#fff; outline:none; transition:border-color .2s, box-shadow .2s; }
+    .fc:focus { border-color:var(--pri); box-shadow:0 0 0 3px rgba(21,101,192,.1); }
+    select.fc { cursor:pointer; }
+    textarea.fc { resize:vertical; min-height:70px; }
+
+    /* ===== BUTTONS ===== */
+    .btn { display:inline-flex; align-items:center; gap:5px; padding:9px 18px; border:none; border-radius:var(--rs); font-weight:700; font-size:13px; cursor:pointer; transition:all .18s; text-decoration:none; white-space:nowrap; }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .btn-p { background:var(--pri); color:#fff; }
+    .btn-p:hover:not(:disabled) { background:var(--pri-dark); transform:translateY(-1px); }
+    .btn-ok  { background:var(--ok); color:#fff; }
+    .btn-ok:hover:not(:disabled)  { background:#1B5E20; }
+    .btn-err { background:var(--err); color:#fff; }
+    .btn-err:hover:not(:disabled) { background:#B71C1C; }
+    .btn-wn  { background:var(--warn); color:#fff; }
+    .btn-wn:hover:not(:disabled)  { background:#E65100; }
+    .btn-o { background:transparent; border:1.5px solid var(--border); color:var(--txt); }
+    .btn-o:hover:not(:disabled) { border-color:var(--pri); color:var(--pri); background:var(--pri-lite); }
+    .btn-sm { padding:5px 11px; font-size:12px; }
+    .btn-fw { width:100%; justify-content:center; padding:11px; }
+
+    /* ===== NAVBAR ===== */
+    #nav { background:#fff; border-bottom:1px solid var(--border); padding:0 22px; display:flex; align-items:center; justify-content:space-between; height:58px; box-shadow:0 1px 4px rgba(0,0,0,.06); position:sticky; top:0; z-index:200; }
+    .nav-brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; color:var(--pri); }
+    .nav-brand .nb-ico { width:34px; height:34px; background:var(--pri); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .user-chip { background:var(--pri-lite); color:var(--pri); padding:4px 11px; border-radius:20px; font-size:11px; font-weight:700; }
+    .user-chip.admin { background:#FFF3E0; color:#E65100; }
+    #btn-menu-toggle { display:none; background:none; border:1.5px solid var(--border); border-radius:8px; padding:5px 9px; font-size:16px; cursor:pointer; }
+
+    /* ===== LAYOUT ===== */
+    #app { display:none; }
+    #layout { display:flex; min-height:calc(100vh - 58px); position:relative; }
+    #sidebar { width:210px; background:#fff; border-right:1px solid var(--border); padding:14px 10px; flex-shrink:0; }
+    #content { flex:1; padding:22px; overflow:auto; }
+    .nav-sec-title { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:0 8px; margin-bottom:5px; margin-top:14px; }
+    .nav-sec-title:first-child { margin-top:0; }
+    .ni { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--rs); cursor:pointer; color:var(--muted); font-weight:600; font-size:13px; border:none; background:none; width:100%; text-align:left; transition:.15s; }
+    .ni:hover { background:var(--bg); color:var(--txt); }
+    .ni.on { background:var(--pri-lite); color:var(--pri); }
+    .ni .nic { width:18px; text-align:center; font-size:15px; }
+
+    /* ===== PAGES ===== */
+    .pg { display:none; }
+    .pg.on { display:block; }
+    .ph { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+    .ph h2 { font-size:21px; font-weight:800; }
+    .ph p { font-size:12px; color:var(--muted); margin-top:2px; }
+
+    /* ===== CARDS ===== */
+    .card { background:#fff; border-radius:var(--r); border:1px solid var(--border); box-shadow:var(--sh); overflow:hidden; margin-bottom:18px; }
+    .card-h { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    .card-h h3 { font-size:14px; font-weight:700; }
+    .card-b { padding:18px; }
+
+    /* ===== SPORT PICKER CARDS ===== */
+    .sport-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+    .sport-card {
+      display:flex; align-items:center; gap:10px; padding:11px 12px;
+      border:2px solid var(--border); border-radius:10px; background:#fff;
+      cursor:pointer; transition:all .15s; text-align:left;
+    }
+    .sport-card:hover { border-color:var(--pri); background:#F8FBFF; transform:translateY(-1px); }
+    .sport-card.active { border-color:var(--pri); background:var(--pri-lite); box-shadow:0 0 0 3px rgba(21,101,192,.12); }
+    .sport-card.disabled { opacity:.5; cursor:not-allowed; }
+    .sport-card .sc-ico { font-size:24px; line-height:1; }
+    .sport-card .sc-name { font-size:13px; font-weight:800; color:var(--txt); }
+    .sport-card .sc-meta { font-size:11px; color:var(--muted); }
+
+    /* ===== KHUNG FORM CHUYÊN MÔN ĐỘNG ===== */
+    .dyn-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1.5px solid #BBDEFB;
+      background: #F8FBFF;
+    }
+    .dyn-box-head {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #DBEAFE;
+    }
+    .dyn-box-title { font-size: 14px; font-weight: 800; color: var(--pri-dark); display: flex; align-items: center; gap: 8px; }
+    .dyn-quota { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #fff; border: 1px solid #BFDBFE; color: var(--pri); }
+    .dyn-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .dyn-full { grid-column: 1 / -1; }
+
+    /* ===== CHECKBOX LIST CHO NỘI DUNG TRONG MÔN ===== */
+    .cb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:7px; background:#fff; border:1.5px solid var(--border); border-radius:var(--rs); padding:10px; }
+    .cb-item { display:flex; align-items:center; gap:7px; padding:6px 9px; border-radius:6px; border:1.5px solid var(--border); cursor:pointer; transition:.12s; user-select:none; font-size:13px; font-weight:600; }
+    .cb-item:hover { border-color:var(--pri); background:var(--pri-lite); }
+    .cb-item.on { border-color:var(--pri); background:var(--pri-lite); color:var(--pri-dark); }
+    .cb-item input[type=checkbox] { width:15px; height:15px; accent-color:var(--pri); cursor:pointer; }
+
+    /* ===== STAT CARDS ===== */
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:20px; }
+    .sc { background:#fff; border-radius:var(--r); padding:18px; border:1px solid var(--border); box-shadow:var(--sh); }
+    .sc .sl { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.03em; margin-bottom:6px; }
+    .sc .sv { font-size:30px; font-weight:900; line-height:1; }
+    .sc .si { font-size:22px; margin-bottom:6px; }
+    .c-p .sv { color:var(--pri); }
+    .c-w .sv { color:var(--warn); }
+    .c-ok .sv { color:var(--ok); }
+    .c-e .sv { color:var(--err); }
+
+    /* ===== BẢNG ===== */
+    .tw { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { background:var(--bg); padding:9px 12px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .12s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg); }
+    td { padding:9px 12px; font-size:13px; vertical-align:middle; }
+
+    /* ===== BADGE & DETAIL TAGS ===== */
+    .bdg { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:800; }
+    .b-warn { background:#FFF3CD; color:#856404; }
+    .b-ok   { background:#D4EDDA; color:#155724; }
+    .b-err  { background:#F8D7DA; color:#721C24; }
+    .b-sec  { background:#E2E3E5; color:#383D41; }
+    .b-info { background:#E3F2FD; color:#0D47A1; }
+    .note-txt { font-size:11px; color:var(--muted); margin-top:3px; max-width:220px; }
+    .note-txt.err { color:var(--err); }
+    .detail-cell { font-size:12px; color:#374151; max-width:260px; line-height:1.45; }
+
+    /* ===== FILTER BAR ===== */
+    .fbar { display:flex; gap:8px; flex-wrap:wrap; padding:14px 18px; background:var(--bg); border-bottom:1px solid var(--border); align-items:center; }
+    .fbar .fc { width:auto; min-width:150px; padding:7px 11px; }
+    .sb { position:relative; }
+    .sb .fc { padding-left:34px; }
+    .sb::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; }
+
+    /* ===== PROGRESS ===== */
+    .prog { height:7px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .prog-b { height:100%; background:var(--pri); border-radius:4px; transition:width .3s; }
+    .prog-b.pw { background:var(--warn); }
+    .prog-b.pe { background:var(--err); }
+
+    /* ===== MODAL ===== */
+    .mo { position:fixed; inset:0; background:rgba(0,0,0,.52); z-index:1000; display:none; align-items:center; justify-content:center; padding:16px; }
+    .mo.on { display:flex; }
+    .mo-box { background:#fff; border-radius:16px; width:100%; max-width:620px; max-height:92vh; overflow-y:auto; box-shadow:var(--sh2); animation:moIn .22s ease; }
+    @keyframes moIn { from { transform:scale(.95); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .mo-h { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .mo-h h3 { font-size:16px; font-weight:800; }
+    .mo-b { padding:22px; }
+    .mo-f { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:9px; justify-content:flex-end; }
+    .btn-x { width:30px; height:30px; border:none; background:var(--bg); border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+    .btn-x:hover { background:var(--border); color:var(--txt); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty { text-align:center; padding:50px 20px; color:var(--muted); }
+    .empty .ei { font-size:40px; margin-bottom:10px; }
+
+    /* ===== BATCH REGISTRATION & PHOTO ===== */
+    .batch-item { border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px; background:#fff; position:relative; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:border-color .15s; }
+    .batch-item:hover { border-color:#93c5fd; }
+    .batch-item-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed var(--border); gap:6px; flex-wrap:wrap; }
+    .batch-title { font-size:13px; font-weight:800; color:var(--pri-dark); display:flex; align-items:center; gap:6px; }
+    .batch-actions { display:flex; gap:4px; align-items:center; }
+    .batch-row-main { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .batch-photo-btn { width:38px; height:50px; border-radius:6px; background:#f1f5f9; border:1.5px dashed #94a3b8; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; overflow:hidden; position:relative; transition:all .15s; }
+    .batch-photo-btn:hover { border-color:var(--pri); background:#eff6ff; }
+    .batch-photo-btn img { width:100%; height:100%; object-fit:cover; display:block; }
+    .batch-row-dyn { margin-top:8px; padding:8px 10px; background:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .fc-sm { padding:5px 8px !important; font-size:12.5px !important; height:32px !important; border-radius:6px !important; }
+    .photo-box { display:flex; align-items:center; gap:12px; background:var(--bg); border:1.5px dashed #cbd5e1; border-radius:10px; padding:10px 12px; }
+    .photo-prev { width:60px; height:80px; border-radius:8px; background:#e2e8f0; border:1px solid var(--border); object-fit:cover; display:flex; align-items:center; justify-content:center; font-size:22px; color:#64748b; flex-shrink:0; overflow:hidden; }
+    .photo-prev img { width:100%; height:100%; object-fit:cover; display:block; }
+    .thumb-sm { width:34px; height:44px; border-radius:6px; object-fit:cover; border:1px solid var(--border); background:#f1f5f9; display:inline-flex; align-items:center; justify-content:center; font-size:14px; color:#94a3b8; flex-shrink:0; }
+    .athlete-cell { display:flex; align-items:center; gap:10px; }
+    .id-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+    /* ===== THẺ THI ĐẤU (ATHLETE CARD) & KHỔ IN A4 (4 THẺ / TRANG) ===== */
+    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:16px; }
+    .a4-sheet { width:194mm; height:275mm; margin:10mm auto; background:#fff; padding:4mm; box-sizing:border-box; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:6mm; box-shadow:0 4px 12px rgba(0,0,0,0.08); page-break-after:always; break-after:page; }
+    .a4-card-wrapper { border:1px dashed #94a3b8; border-radius:10px; padding:2px; box-sizing:border-box; display:flex; overflow:hidden; }
+    .a4-card-wrapper .id-card { width:100%; height:100%; border:1.5px solid #1565C0; box-shadow:none; box-sizing:border-box; }
+    .id-card { background:#fff; border:2px solid #1565C0; border-radius:12px; overflow:hidden; box-shadow:var(--sh); break-inside:avoid; page-break-inside:avoid; display:flex; flex-direction:column; }
+    .id-card-head { background:linear-gradient(135deg,#1565C0,#0D47A1); color:#fff; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #f59e0b; }
+    .id-card-head .org { font-size:10px; font-weight:700; letter-spacing:.04em; opacity:.92; text-transform:uppercase; }
+    .id-card-head .ttl { font-size:14px; font-weight:900; letter-spacing:.03em; margin-top:1px; }
+    .id-card-body { padding:12px 14px; display:flex; gap:12px; flex:1; }
+    .id-card-left { width:92px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .id-card-photo { width:88px; height:116px; border:1.5px solid #90caf9; border-radius:8px; background:#f1f5f9; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:28px; color:#94a3b8; }
+    .id-card-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+    .id-card-code { font-size:9px; font-family:monospace; background:#eff6ff; color:#1e40af; padding:2px 5px; border-radius:4px; word-break:break-all; text-align:center; width:100%; }
+    .id-card-right { flex:1; min-width:0; font-size:12px; line-height:1.45; }
+    .id-card-name { font-size:15px; font-weight:900; color:#0f172a; text-transform:uppercase; margin-bottom:4px; }
+    .id-card-line { margin-bottom:2px; color:#334155; }
+    .id-card-line b { color:#0f172a; }
+    .id-card-sport { margin-top:6px; padding:6px 8px; background:#f8fafc; border-left:3px solid #1565C0; border-radius:4px; font-size:11.5px; }
+    .id-card-foot { background:#f8fafc; border-top:1px solid var(--border); padding:7px 14px; display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:var(--muted); }
+    .pager { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-top:1px solid var(--border); font-size:12.5px; color:var(--muted); gap:8px; flex-wrap:wrap; }
+    .pager-btns { display:flex; gap:6px; align-items:center; }
+
+    /* ===== HELPERS ===== */
+    .row { display:flex; gap:14px; }
+    .col { flex:1; min-width:0; }
+    @media(max-width:640px) { .row { flex-direction:column; } .cards-grid { grid-template-columns:1fr; } }
+    @media(max-width:768px) {
+      #btn-menu-toggle { display:inline-flex; }
+      #sidebar { display:none; position:fixed; top:58px; left:0; bottom:0; z-index:300; box-shadow:var(--sh2); }
+      #sidebar.open { display:block; }
+      #content { padding:14px; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+    }
+    @media print {
+      body { background:#fff; }
+      #nav, #sidebar, #toasts, #overlay, .no-print, .mo-h, .mo-f, .ph, .fbar { display:none !important; }
+      #layout { display:block !important; }
+      #content { padding:0 !important; }
+      .pg { display:none !important; }
+      body:not(.print-modal-cards) #pg-cards { display:block !important; }
+      body.print-modal-cards .mo { display:none !important; }
+      body.print-modal-cards #mo-cards { display:block !important; position:static !important; background:#fff !important; padding:0 !important; }
+      body.print-modal-cards #mo-cards .mo-box { box-shadow:none !important; max-width:none !important; max-height:none !important; border-radius:0 !important; }
+      body.print-modal-cards #mo-cards .mo-b { padding:0 !important; }
+      .cards-grid { grid-template-columns:repeat(2, 1fr) !important; gap:12px !important; }
+      .id-card { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="toasts"></div>
+<div id="overlay"><div class="spin"></div></div>
+
+<!-- =========================================================
+     TRANG ĐĂNG NHẬP
+     ========================================================= -->
+<div id="pg-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="ico">🏅</div>
+      <h1>HỘI KHỎE PHÙ ĐỔNG CẤP TỈNH</h1>
+      <p>Hệ thống đăng ký thi đấu theo Môn</p>
+    </div>
+
+    <div class="tab-group">
+      <button class="tab-btn on" id="tbDV" onclick="switchTab('dv')">🏫 Đơn vị</button>
+      <button class="tab-btn"    id="tbAD" onclick="switchTab('ad')">🔑 Ban tổ chức</button>
+    </div>
+
+    <div id="form-dv">
+      <div class="fg">
+        <label>Mã đơn vị <span class="req">*</span></label>
+        <input id="dv-ma-login" class="fc" type="text" placeholder="VD: THPT001" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="fg">
+        <label>Mật khẩu <span class="req">*</span></label>
+        <input id="dv-mk-login" class="fc" type="password" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="btn btn-p btn-fw" onclick="login()">🚀 Đăng nhập</button>
+    </div>
+
+    <div id="form-ad" style="display:none;">
+      <div class="fg">
+        <label>Mật khẩu Ban tổ chức <span class="req">*</span></label>
+        <input id="ad-mk" class="fc" type="password" placeholder="Mật khẩu admin" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="btn btn-p btn-fw" onclick="login()">🔐 Đăng nhập Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     APP CHÍNH
+     ========================================================= -->
+<div id="app">
+
+  <!-- NAVBAR -->
+  <nav id="nav">
+    <div class="nav-brand">
+      <button id="btn-menu-toggle" onclick="toggleMobileMenu()" title="Menu">☰</button>
+      <div class="nb-ico">🏅</div>
+      <span>HKPĐ Cấp Tỉnh</span>
+    </div>
+    <div class="nav-right">
+      <span class="user-chip" id="role-chip">Đơn vị</span>
+      <strong id="user-name" style="font-size:13px;"></strong>
+      <button class="btn btn-o btn-sm" onclick="logout()">🚪 Thoát</button>
+    </div>
+  </nav>
+
+  <div id="layout">
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div id="menu-dv">
+        <div class="nav-sec-title">Đơn vị</div>
+        <button class="ni on" data-page="dash"  onclick="go(this,'dash')"><span class="nic">📊</span> Tổng quan</button>
+        <button class="ni"    data-page="reg"   onclick="go(this,'reg')"><span class="nic">➕</span> Đăng ký theo Môn</button>
+        <button class="ni"    data-page="list"  onclick="go(this,'list')"><span class="nic">📋</span> Danh sách VĐV</button>
+        <button class="ni"    data-page="cards" onclick="go(this,'cards')"><span class="nic">🪪</span> Thẻ thi đấu</button>
+        <button class="ni"    data-page="chpw"  onclick="go(this,'chpw')"><span class="nic">🔑</span> Đổi mật khẩu</button>
+      </div>
+      <div id="menu-ad" style="display:none;">
+        <div class="nav-sec-title">Quản trị</div>
+        <button class="ni on" data-page="dash"    onclick="go(this,'dash')"><span class="nic">📊</span> Tổng quan</button>
+        <button class="ni"    data-page="adm-vdv" onclick="go(this,'adm-vdv')"><span class="nic">🏃</span> Duyệt VĐV</button>
+        <button class="ni"    data-page="cards"   onclick="go(this,'cards')"><span class="nic">🪪</span> Thẻ thi đấu</button>
+        <button class="ni"    data-page="adm-dv"  onclick="go(this,'adm-dv')"><span class="nic">🏫</span> Đơn vị</button>
+        <button class="ni"    data-page="adm-mon" onclick="go(this,'adm-mon')"><span class="nic">🏆</span> Môn &amp; Biểu mẫu</button>
+        <button class="ni"    data-page="adm-tk"  onclick="go(this,'adm-tk')"><span class="nic">📈</span> Thống kê</button>
+        <button class="ni"    data-page="adm-cd"  onclick="go(this,'adm-cd')"><span class="nic">⚙️</span> Cài đặt</button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG -->
+    <main id="content">
+
+      <!-- === DASHBOARD === -->
+      <div id="pg-dash" class="pg on">
+        <div class="ph">
+          <div><h2 id="dash-title">Tổng quan</h2><p id="dash-sub">Chào mừng!</p></div>
+          <button class="btn btn-o btn-sm" onclick="loadDash()">🔄 Làm mới</button>
+        </div>
+        <div class="stats">
+          <div class="sc c-p"><div class="si">🏃</div><div class="sv" id="s-tong">0</div><div class="sl">Tổng lượt đăng ký</div></div>
+          <div class="sc c-w"><div class="si">⏳</div><div class="sv" id="s-cho">0</div><div class="sl">Chờ duyệt</div></div>
+          <div class="sc c-ok"><div class="si">✅</div><div class="sv" id="s-ok">0</div><div class="sl">Đã duyệt</div></div>
+          <div class="sc c-e"><div class="si">❌</div><div class="sv" id="s-err">0</div><div class="sl">Từ chối</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>📊 Tỷ lệ đăng ký theo từng Môn thi</h3></div>
+          <div class="card-b" id="dash-chart"><p class="empty">⏳ Đang tải...</p></div>
+        </div>
+      </div>
+
+      <!-- === ĐĂNG KÝ VĐV THEO MÔN (NHIỀU VĐV + FORM ĐỘNG) === -->
+      <div id="pg-reg" class="pg">
+        <div class="ph">
+          <div>
+            <h2>➕ Đăng ký VĐV theo Môn</h2>
+            <p>Bước 1: Chọn môn thi đấu — Bước 2: Nhập danh sách một hoặc nhiều VĐV cùng lúc (kèm CCCD, Mã HS, Ảnh thẻ)</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h3>1️⃣ Chọn môn thi đấu</h3></div>
+          <div class="card-b">
+            <div id="sport-picker" class="sport-grid">
+              <p style="color:var(--muted);font-size:12px;">⏳ Đang tải danh sách môn...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="reg-form-card">
+          <div class="card-h" style="flex-wrap:wrap;gap:8px;">
+            <div>
+              <h3 id="reg-form-heading">2️⃣ Danh sách VĐV đăng ký</h3>
+              <div id="dyn-title" style="font-size:12px;color:var(--muted);margin-top:2px;">🏅 Chọn một môn thi ở trên</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="dyn-quota" id="dyn-quota" style="display:none;"></span>
+              <button type="button" class="btn btn-p btn-sm" id="btn-add-batch" onclick="addBatchRow()">➕ Thêm VĐV vào danh sách</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <form onsubmit="return false;">
+              <div id="reg-batch-list">
+                <p style="color:var(--muted);font-size:13px;">Vui lòng chọn môn thi ở bước 1 để bắt đầu nhập danh sách VĐV.</p>
+              </div>
+              <div style="display:flex;gap:9px;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-o" onclick="addBatchRow()">➕ Thêm VĐV khác cùng môn</button>
+                <div style="display:flex;gap:9px;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-o" onclick="clearForm()">🔄 Làm mới danh sách</button>
+                  <button type="button" class="btn btn-p" id="btn-submit-batch" onclick="submitReg()">✅ Gửi đăng ký (1 VĐV)</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- === DANH SÁCH (Đơn vị) === -->
+      <div id="pg-list" class="pg">
+        <div class="ph">
+          <div><h2>📋 Danh sách VĐV đã đăng ký</h2></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ok btn-sm" onclick="openFilteredCards('unit')">🪪 Tạo thẻ thi đấu đơn vị</button>
+            <button class="btn btn-o btn-sm" onclick="xuatCSV(S.vdvFiltered, 'HKPD_DonVi')">📥 Tải CSV</button>
+            <button class="btn btn-p btn-sm" onclick="go(null,'reg')">➕ Đăng ký thêm</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="fbar">
+            <div class="sb"><input id="fl-kw" class="fc" placeholder="Tên, CCCD, Mã HS, lớp..." oninput="filterList()"></div>
+            <select id="fl-mon" class="fc" onchange="filterList()"><option value="">Tất cả môn</option></select>
+            <select id="fl-tt" class="fc" onchange="filterList()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="ChoDuyet">Chờ duyệt</option>
+              <option value="DaDuyet">Đã duyệt</option>
+              <option value="TuChoi">Từ chối</option>
+            </select>
+          </div>
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>VĐV &amp; Ảnh thẻ</th><th>CCCD / Mã HS</th><th>NS / GT / Lớp</th><th>Môn thi</th><th>Nội dung &amp; Chi tiết chuyên môn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="tb-list"></tbody>
+          </table>
+          <div id="list-empty" class="empty" style="display:none;"><div class="ei">📭</div><p>Chưa có dữ liệu</p></div>
+          <div id="list-pager" class="pager" style="display:none;"></div></div>
+        </div>
+      </div>
+
+      <!-- === ĐỔI MẬT KHẨU === -->
+      <div id="pg-chpw" class="pg">
+        <div class="ph"><div><h2>🔑 Đổi mật khẩu</h2></div></div>
+        <div class="card" style="max-width:420px;">
+          <div class="card-b">
+            <div class="fg"><label>Mật khẩu hiện tại <span class="req">*</span></label><input id="pw-cu" class="fc" type="password"></div>
+            <div class="fg"><label>Mật khẩu mới <span class="req">*</span></label><input id="pw-moi" class="fc" type="password"></div>
+            <div class="fg"><label>Nhập lại mật khẩu mới <span class="req">*</span></label><input id="pw-moi2" class="fc" type="password"></div>
+            <button class="btn btn-p" onclick="doiMK()">💾 Đổi mật khẩu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- === ADMIN: DUYỆT VĐV === -->
+      <div id="pg-adm-vdv" class="pg">
+        <div class="ph">
+          <div><h2>🏃 Duyệt đăng ký VĐV</h2></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ok btn-sm" onclick="bulkApprove('DaDuyet')">✅ Duyệt chọn</button>
+            <button class="btn btn-err btn-sm" onclick="bulkApprove('TuChoi')">❌ Từ chối chọn</button>
+            <button class="btn btn-p btn-sm" onclick="openFilteredCards('adm')">🪪 Tạo thẻ thi đấu</button>
+            <button class="btn btn-o btn-sm" onclick="xuatCSV(S.vdvFiltered, 'HKPD_TatCa')">📥 Tải CSV</button>
+            <button class="btn btn-o btn-sm" onclick="loadAdmVDV()">🔄 Làm mới</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="fbar">
+            <div class="sb"><input id="af-kw" class="fc" placeholder="Tên, CCCD, Mã HS, đơn vị..." oninput="filterAdm()"></div>
+            <select id="af-dv"  class="fc" onchange="filterAdm()"><option value="">Tất cả đơn vị</option></select>
+            <select id="af-mon" class="fc" onchange="filterAdm()"><option value="">Tất cả môn</option></select>
+            <select id="af-tt"  class="fc" onchange="filterAdm()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="ChoDuyet">Chờ duyệt</option>
+              <option value="DaDuyet">Đã duyệt</option>
+              <option value="TuChoi">Từ chối</option>
+            </select>
+          </div>
+          <div class="tw"><table>
+            <thead><tr>
+              <th><input type="checkbox" id="chk-all" onchange="checkAll(this.checked)"></th>
+              <th>Đơn vị</th><th>VĐV &amp; Ảnh thẻ</th><th>CCCD / Mã HS</th><th>NS / GT / Lớp</th>
+              <th>Môn thi</th><th>Nội dung &amp; Chi tiết chuyên môn</th><th>Thời gian ĐK</th><th>Trạng thái</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody id="tb-adm-vdv"></tbody>
+          </table>
+          <div id="adm-vdv-empty" class="empty" style="display:none;"><div class="ei">🎉</div><p>Không có dữ liệu</p></div>
+          <div id="adm-pager" class="pager" style="display:none;"></div></div>
+        </div>
+      </div>
+
+      <!-- === THẺ THI ĐẤU VĐV & ĐƠN VỊ === -->
+      <div id="pg-cards" class="pg">
+        <div class="ph">
+          <div>
+            <h2>🪪 Tạo &amp; In Thẻ Thi Đấu (Khổ A4)</h2>
+            <p>Xuất thẻ theo từng đơn vị và định dạng in trên giấy A4 với đúng 4 VĐV trên một trang A4 chuẩn</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ok btn-sm" onclick="openStandalonePrintWindow(false)">📄 In khổ A4 (4 thẻ/trang)</button>
+            <button class="btn btn-p btn-sm" onclick="printCardsView(false)">🖨️ In trực tiếp</button>
+            <button class="btn btn-o btn-sm" onclick="loadCardsPage()">🔄 Làm mới</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="fbar">
+            <div class="sb"><input id="cf-kw" class="fc" placeholder="Tìm tên, CCCD, Mã HS..." oninput="filterCards()"></div>
+            <select id="cf-dv" class="fc" onchange="filterCards()" style="display:none;"><option value="">Tất cả đơn vị</option></select>
+            <select id="cf-mon" class="fc" onchange="filterCards()"><option value="">Tất cả môn</option></select>
+            <select id="cf-tt" class="fc" onchange="filterCards()">
+              <option value="">Tất cả (trừ Từ chối)</option>
+              <option value="DaDuyet">Chỉ VĐV Đã duyệt</option>
+              <option value="ChoDuyet">Chỉ VĐV Chờ duyệt</option>
+              <option value="ALL_INC">Kể cả Từ chối</option>
+            </select>
+            <span id="cards-count" class="dyn-quota" style="margin-left:auto;">0 thẻ</span>
+          </div>
+        </div>
+        <div id="pg-cards-grid" class="cards-grid"></div>
+        <div id="cards-empty" class="empty" style="display:none;"><div class="ei">🪪</div><p>Không có VĐV nào phù hợp để tạo thẻ thi đấu</p></div>
+        <div id="cards-pager" class="pager" style="display:none;background:#fff;border-radius:10px;border:1px solid var(--border);margin-top:12px;"></div>
+      </div>
+
+      <!-- === ADMIN: QUẢN LÝ ĐƠN VỊ === -->
+      <div id="pg-adm-dv" class="pg">
+        <div class="ph">
+          <div>
+            <h2>🏫 Quản lý đơn vị</h2>
+            <p>Thêm đơn vị đơn lẻ hoặc nạp hàng loạt từ file Excel / Sao chép &amp; dán trực tiếp từ Word, Excel</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ok btn-sm" onclick="downloadDVTemplate()">📥 Tải file mẫu CSV</button>
+            <button class="btn btn-p btn-sm" onclick="openImportDVModal()" style="background:#7c3aed;color:#fff;">📤 Nhập Excel / Copy &amp; Dán</button>
+            <button class="btn btn-p btn-sm" onclick="openAddDV()">➕ Thêm đơn vị</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>Mã</th><th>Tên đơn vị</th><th>Loại</th><th>ĐT</th><th>Người LH</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="tb-dv"></tbody>
+          </table>
+          <div id="dv-empty" class="empty" style="display:none;"><div class="ei">🏫</div><p>Chưa có đơn vị</p></div></div>
+        </div>
+      </div>
+
+      <!-- === ADMIN: QUẢN LÝ MÔN THI & CẤU TRÚC FORM === -->
+      <div id="pg-adm-mon" class="pg">
+        <div class="ph">
+          <div>
+            <h2>🏆 Quản lý Môn thi &amp; Biểu mẫu</h2>
+            <p>Admin có thể thêm, chỉnh sửa hoặc xóa nội dung nhỏ của từng môn và lưu toàn bộ danh mục cùng lúc</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ok btn-sm" onclick="saveAllMon()">💾 Lưu toàn bộ danh mục &amp; biểu mẫu</button>
+            <button class="btn btn-o btn-sm" onclick="loadAdmMon()">🔄 Tải lại</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>Môn thi</th><th>Nhóm</th><th>Nội dung thi đấu &amp; Biểu mẫu</th><th>Giới hạn/ĐV</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="tb-mon"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- === ADMIN: THỐNG KÊ === -->
+      <div id="pg-adm-tk" class="pg">
+        <div class="ph">
+          <div><h2>📈 Thống kê</h2></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="rpt-mon" class="fc" style="width:auto;padding:6px 10px;">
+              <option value="">Xuất tất cả môn</option>
+            </select>
+            <button class="btn btn-ok btn-sm" onclick="xuatBaoCao()">📄 Xuất báo cáo GSheets</button>
+            <button class="btn btn-o btn-sm" onclick="loadTK()">🔄 Làm mới</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-h"><h3>📊 Theo môn thi</h3></div>
+          <div class="tw"><table>
+            <thead><tr><th>Môn</th><th>Nhóm</th><th>Đã ĐK</th><th>Giới hạn/đơn vị</th><th style="min-width:160px;">Tiến độ</th></tr></thead>
+            <tbody id="tb-tk-mon"></tbody>
+          </table></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>🏫 Theo đơn vị</h3></div>
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>Đơn vị</th><th>Tổng</th><th>Đã duyệt</th><th>Chờ duyệt</th><th>Từ chối</th></tr></thead>
+            <tbody id="tb-tk-dv"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- === ADMIN: CÀI ĐẶT === -->
+      <div id="pg-adm-cd" class="pg">
+        <div class="ph"><div><h2>⚙️ Cài đặt hệ thống</h2></div></div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-h"><h3>🗄️ Thông tin database</h3></div>
+          <div class="card-b">
+            <p style="color:var(--muted);margin-bottom:10px;">Google Sheets đang sử dụng làm cơ sở dữ liệu:</p>
+            <a id="db-url" href="#" target="_blank" class="btn btn-p btn-sm">📂 Mở Google Sheets</a>
+            <button class="btn btn-wn btn-sm" style="margin-left:8px;" onclick="initDb()">🚀 Khởi tạo / Kiểm tra cấu trúc</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>⚙️ Tham số hệ thống</h3><button class="btn btn-p btn-sm" onclick="saveCaiDat()">💾 Lưu tất cả</button></div>
+          <div class="card-b" id="cd-list"><p class="empty">⏳ Đang tải...</p></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- === MODAL: THÊM/SỬA ĐƠN VỊ === -->
+<div class="mo" id="mo-dv">
+  <div class="mo-box">
+    <div class="mo-h"><h3 id="mo-dv-title">Thêm đơn vị</h3><button class="btn-x" onclick="closeModal('mo-dv')">✕</button></div>
+    <div class="mo-b">
+      <input type="hidden" id="edit-ma">
+      <div class="row">
+        <div class="col"><div class="fg"><label>Mã đơn vị <span class="req">*</span></label><input id="dv-ma" class="fc" placeholder="THPT001" oninput="this.value=this.value.toUpperCase()"></div></div>
+        <div class="col"><div class="fg"><label>Mật khẩu</label><input id="dv-mk" class="fc" placeholder="Để trống = tự tạo"></div></div>
+      </div>
+      <div class="fg"><label>Tên đơn vị <span class="req">*</span></label><input id="dv-ten" class="fc" placeholder="Trường THPT ..."></div>
+      <div class="row">
+        <div class="col"><div class="fg"><label>Loại</label><select id="dv-loai" class="fc"><option>Trường THPT</option><option>Trường THCS</option><option>Phòng GD</option><option>Khác</option></select></div></div>
+        <div class="col"><div class="fg"><label>Điện thoại</label><input id="dv-dt" class="fc" placeholder="0123..."></div></div>
+      </div>
+      <div class="row">
+        <div class="col"><div class="fg"><label>Email</label><input id="dv-email" class="fc" type="email"></div></div>
+        <div class="col"><div class="fg"><label>Người liên hệ</label><input id="dv-nlh" class="fc"></div></div>
+      </div>
+      <div class="fg"><label>Địa chỉ</label><input id="dv-dc" class="fc"></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-dv')">Hủy</button>
+      <button class="btn btn-p" onclick="saveDV()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: NHẬP HÀNG LOẠT ĐƠN VỊ TỪ EXCEL / COPY & DÁN === -->
+<div class="mo" id="mo-import-dv">
+  <div class="mo-box" style="max-width:840px;">
+    <div class="mo-h">
+      <h3>📤 Nhập tài khoản đơn vị từ Excel / Copy &amp; Dán</h3>
+      <button class="btn-x" onclick="closeModal('mo-import-dv')">✕</button>
+    </div>
+    <div class="mo-b">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#1e40af;margin-bottom:12px;">
+        💡 <b>Cấu trúc cột:</b> <code>Mã đơn vị</code> (bắt buộc) | <code>Tên đơn vị</code> (bắt buộc) | <code>Loại đơn vị</code> | <code>Email</code> | <code>Điện thoại</code> | <code>Người liên hệ</code> | <code>Địa chỉ</code> | <code>Mật khẩu</code> (để trống tự đặt <code>&lt;Mã&gt;@hkpd</code>).
+      </div>
+      
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+        <button type="button" class="btn btn-sm" id="btn-tab-paste" onclick="switchImportTab('paste')" style="background:var(--pri);color:#fff;">📋 Sao chép &amp; Dán từ Excel/Word</button>
+        <button type="button" class="btn btn-sm btn-o" id="btn-tab-file" onclick="switchImportTab('file')">📁 Chèn tệp Excel / CSV</button>
+        <button type="button" class="btn btn-sm btn-o" onclick="downloadDVTemplate()" style="margin-left:auto;">📥 Tải file mẫu CSV</button>
+      </div>
+
+      <!-- Tab Dán -->
+      <div id="tab-import-paste">
+        <textarea id="import-dv-paste" class="fc" rows="6" placeholder="Bôi đen bảng dữ liệu trong Excel hoặc Word, nhấn Ctrl+C rồi dán (Ctrl+V) vào đây..." oninput="handleDVPasteInput(this.value)" style="font-family:monospace;font-size:12px;"></textarea>
+      </div>
+
+      <!-- Tab File -->
+      <div id="tab-import-file" style="display:none;">
+        <input type="file" id="import-dv-file" accept=".xlsx,.xls,.csv,.txt" class="fc" onchange="handleDVFileSelect(this)" style="padding:10px;">
+        <small style="color:var(--muted);margin-top:4px;display:block;">Hỗ trợ tệp định dạng .csv, .txt hoặc xuất từ Excel.</small>
+      </div>
+
+      <!-- Xem trước -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;margin-bottom:6px;">
+        <b id="import-dv-stats" style="font-size:13px;color:var(--pri-dark);">Chưa có dữ liệu</b>
+        <small style="color:var(--muted);">Kiểm tra danh sách trước khi nhấn nạp</small>
+      </div>
+      <div class="tw" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+        <table>
+          <thead><tr><th>#</th><th>Mã ĐV</th><th>Tên đơn vị</th><th>Loại</th><th>Email</th><th>SĐT</th><th>Người LH</th><th>Mật khẩu</th><th>Trạng thái</th></tr></thead>
+          <tbody id="tb-import-dv-preview">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Chưa dán hoặc chọn tệp dữ liệu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-import-dv')">Hủy</button>
+      <button class="btn btn-ok" id="btn-do-import-dv" onclick="submitImportDV()" disabled>🚀 Tiến hành nhập toàn bộ (0 đơn vị)</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: QUẢN LÝ NỘI DUNG THI ĐẤU & BIỂU MẪU MÔN === -->
+<div class="mo" id="mo-edit-sport">
+  <div class="mo-box" style="max-width:760px;">
+    <div class="mo-h">
+      <h3>⚙️ Quản lý Nội dung thi đấu &amp; Biểu mẫu: <span id="es-sport-name" style="color:var(--pri);"></span></h3>
+      <button class="btn-x" onclick="closeModal('mo-edit-sport')">✕</button>
+    </div>
+    <div class="mo-b">
+      <input type="hidden" id="es-sport-id">
+      
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+        <div><b>Mã môn:</b> <code id="es-txt-id"></code></div>
+        <div><b>Nhóm:</b> <span id="es-txt-nhom"></span></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <b>Giới hạn VĐV:</b>
+          <input type="number" id="es-txt-gioihan" class="fc fc-sm" style="width:70px;text-align:center;" min="1" max="999">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <b>Trạng thái:</b>
+          <select id="es-txt-trangthai" class="fc fc-sm" style="width:115px;">
+            <option value="HoatDong">Hoạt động</option>
+            <option value="Tat">Tạm khóa</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PHẦN 1: NỘI DUNG THI ĐẤU -->
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <h4 style="margin:0;font-size:14px;color:var(--pri-dark);">🎯 1. Danh sách nội dung thi đấu (cự ly / hạng cân / thể loại)</h4>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <span>Kiểu chọn:</span>
+            <select id="es-noidung-type" class="fc fc-sm" style="width:auto;">
+              <option value="checkboxes">Chọn nhiều nội dung (Checkboxes)</option>
+              <option value="select">Chọn 1 nội dung (Dropdown select)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input id="es-new-noidung" class="fc fc-sm" placeholder="Nhập tên nội dung/cự ly mới (VD: 4x400m, Nhảy sào, Hạng cân 55kg...)" onkeydown="if(event.key==='Enter'){event.preventDefault();addSportNoiDungItem();}">
+          <button type="button" class="btn btn-p btn-sm" onclick="addSportNoiDungItem()">➕ Thêm</button>
+        </div>
+
+        <div id="es-noidung-list" style="display:flex;flex-wrap:wrap;gap:8px;max-height:160px;overflow-y:auto;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;"></div>
+      </div>
+
+      <!-- PHẦN 2: CÁC TRƯỜNG THÔNG TIN KHÁC -->
+      <div>
+        <h4 style="margin:0 0 8px 0;font-size:14px;color:var(--pri-dark);">📋 2. Các trường thông tin chuyên môn khác</h4>
+        <div id="es-other-fields" style="display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-edit-sport')">Đóng</button>
+      <button class="btn btn-p" onclick="applyAndSaveAllMon()">💾 Áp dụng môn này &amp; Lưu toàn bộ hệ thống</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: XÁC NHẬN === -->
+<div class="mo" id="mo-confirm">
+  <div class="mo-box" style="max-width:400px;">
+    <div class="mo-h"><h3>⚠️ Xác nhận</h3><button class="btn-x" onclick="closeModal('mo-confirm')">✕</button></div>
+    <div class="mo-b"><p id="confirm-txt" style="font-size:15px;"></p></div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-confirm')">Hủy</button>
+      <button class="btn btn-err" id="confirm-ok">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: LÝ DO TỪ CHỐI === -->
+<div class="mo" id="mo-reject">
+  <div class="mo-box" style="max-width:400px;">
+    <div class="mo-h"><h3>❌ Từ chối đăng ký</h3><button class="btn-x" onclick="closeModal('mo-reject')">✕</button></div>
+    <div class="mo-b">
+      <div class="fg"><label>Lý do từ chối <span class="req">*</span></label><textarea id="reject-reason" class="fc" placeholder="Nhập lý do..."></textarea></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-reject')">Hủy</button>
+      <button class="btn btn-err" id="reject-ok">❌ Từ chối</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: SỬA VĐV (BAO GỒM ĐỊNH DANH, ẢNH THẺ & FORM ĐỘNG THEO MÔN) === -->
+<div class="mo" id="mo-edit-vdv">
+  <div class="mo-box">
+    <div class="mo-h"><h3 id="edit-modal-title">✏️ Sửa thông tin VĐV</h3><button class="btn-x" onclick="closeModal('mo-edit-vdv')">✕</button></div>
+    <div class="mo-b">
+      <input type="hidden" id="edit-ri">
+      <input type="hidden" id="edit-vdv-id">
+      <input type="hidden" id="edit-ma-mon">
+      <div class="row">
+        <div class="col"><div class="fg"><label>Họ và tên <span class="req">*</span></label><input id="ev-ht" class="fc"></div></div>
+        <div class="col"><div class="fg"><label>Ngày sinh <span class="req">*</span></label><input id="ev-ns" class="fc" type="date"></div></div>
+      </div>
+      <div class="row">
+        <div class="col"><div class="fg"><label>Giới tính <span class="req">*</span></label><select id="ev-gt" class="fc"><option>Nam</option><option>Nữ</option></select></div></div>
+        <div class="col"><div class="fg"><label>Lớp</label><input id="ev-lop" class="fc"></div></div>
+      </div>
+      <div class="row">
+        <div class="col"><div class="fg"><label>Số CCCD / ĐDCN <span class="req">*</span></label><input id="ev-cccd" class="fc" placeholder="12 số (hoặc 9 số CMND)"></div></div>
+        <div class="col"><div class="fg"><label>Mã học sinh <span class="req">*</span></label><input id="ev-mhs" class="fc" placeholder="VD: HS0123456789"></div></div>
+      </div>
+      <div class="fg">
+        <label>Ảnh thẻ (3x4)</label>
+        <div class="photo-box">
+          <div class="photo-prev" id="ev-photo-prev">🧑</div>
+          <div style="flex:1;min-width:0;">
+            <input type="file" id="ev-photo" accept="image/*" class="fc" style="padding:6px;" onchange="handlePhotoInput(this, 'ev-photo-prev', 'ev-photo-data', 'ev-photo-changed')">
+            <input type="hidden" id="ev-photo-data">
+            <input type="hidden" id="ev-photo-changed" value="0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+              <small style="color:var(--muted);">Tự động nén ảnh 3x4 bằng Canvas và lưu Google Drive</small>
+              <button type="button" class="btn btn-o btn-sm" onclick="clearPhotoField('ev-photo','ev-photo-prev','ev-photo-data','ev-photo-changed')">Xóa ảnh</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dyn-box" style="margin-top:6px;">
+        <div class="dyn-box-head">
+          <div class="dyn-box-title" id="edit-dyn-title">🏅 Thông tin chuyên môn</div>
+        </div>
+        <div id="edit-dyn-fields" class="dyn-grid"></div>
+      </div>
+      <div class="fg" style="margin-top:12px;"><label>Ghi chú</label><textarea id="ev-gc" class="fc"></textarea></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-edit-vdv')">Hủy</button>
+      <button class="btn btn-p" onclick="saveEditVDV()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL: XEM & IN THẺ THI ĐẤU (TỪNG VĐV / ĐƠN VỊ) === -->
+<div class="mo" id="mo-cards">
+  <div class="mo-box" style="max-width:820px;">
+    <div class="mo-h">
+      <h3 id="mo-cards-title">🪪 Thẻ thi đấu VĐV</h3>
+      <button class="btn-x" onclick="closeModal('mo-cards')">✕</button>
+    </div>
+    <div class="mo-b">
+      <div id="mo-cards-grid" class="cards-grid"></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-o" onclick="closeModal('mo-cards')">Đóng</button>
+      <button class="btn btn-ok" onclick="openStandalonePrintWindow(true)">📄 Mở cửa sổ in riêng</button>
+      <button class="btn btn-p" onclick="printCardsView(true)">🖨️ In trực tiếp</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// TRẠNG THÁI
+// =========================================================
+var S = {
+  user: null,
+  token: '',
+  mons: [],          // [{id,ten,nhom,icon,gioiHan,trangThai,fields,rowIndex}]
+  selectedMonId: '', // Môn đang chọn để đăng ký
+  unitCounts: {},    // Số VĐV đơn vị đã ĐK theo từng môn { maMon: count }
+  photoCache: {},    // { vdvId: 'data:image/...' } tải lười từ Drive
+  dvList: [],
+  vdvAll: [],
+  vdvFiltered: [],
+  cardsAll: [],
+  cardsFiltered: [],
+  listPage: 1,
+  admPage: 1,
+  cardsPage: 1,
+  PAGE_SIZE: 50,
+  batchIds: [],
+  nextBatchUid: 0,
+  cdList: [],
+  curPage: 'dash'
+};
+
+// =========================================================
+// KHỞI TẠO
+// =========================================================
+document.addEventListener('DOMContentLoaded', function() {
+  loadMonThi();
+  document.querySelectorAll('.mo').forEach(function(el) {
+    el.addEventListener('click', function(e) { if(e.target===this) this.classList.remove('on'); });
+  });
+});
+
+function loadMonThi() {
+  G('layDanhSachMon', [], function(res) {
+    if (res && res.ok) {
+      S.mons = res.data || [];
+      buildSportPicker();
+      buildMonFilter();
+    }
+  });
+}
+
+// =========================================================
+// ĐĂNG NHẬP / ĐĂNG XUẤT
+// =========================================================
+var _tab = 'dv';
+function switchTab(t) {
+  _tab = t;
+  document.getElementById('tbDV').classList.toggle('on', t==='dv');
+  document.getElementById('tbAD').classList.toggle('on', t==='ad');
+  document.getElementById('form-dv').style.display = t==='dv' ? 'block':'none';
+  document.getElementById('form-ad').style.display = t==='ad' ? 'block':'none';
+}
+
+function login() {
+  var ma = _tab==='dv' ? document.getElementById('dv-ma-login').value.trim() : 'ADMIN';
+  var mk = _tab==='dv' ? document.getElementById('dv-mk-login').value : document.getElementById('ad-mk').value;
+  if (!ma || !mk) { toast('Nhập đầy đủ thông tin!','wn'); return; }
+
+  loading(true);
+  G('dangNhap', [ma, mk], function(res) {
+    loading(false);
+    if (res.ok) {
+      S.user = res.user;
+      S.token = res.token || '';
+      startApp();
+    } else {
+      toast(res.msg, 'err');
+    }
+  });
+}
+
+function startApp() {
+  document.getElementById('pg-login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  var isAdmin = S.user.isAdmin;
+  document.getElementById('menu-dv').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('menu-ad').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('user-name').textContent = S.user.tenDonVi;
+
+  var chip = document.getElementById('role-chip');
+  chip.textContent = isAdmin ? '👑 Ban tổ chức' : '🏫 Đơn vị';
+  chip.className = 'user-chip' + (isAdmin ? ' admin' : '');
+
+  document.getElementById('dash-title').textContent = isAdmin ? 'Tổng quan hệ thống' : 'Tổng quan đơn vị';
+  document.getElementById('dash-sub').textContent = isAdmin ? 'Quản lý toàn bộ đăng ký HKPĐ' : 'Chào ' + S.user.tenDonVi;
+
+  // Chuyển về trang tổng quan nhưng gộp tải bootstrap chỉ trong 1 RPC
+  go(null, 'dash', true);
+  loading(true);
+  GAuth('getBootstrapData', [], function(res) {
+    loading(false);
+    if (!res || !res.ok) { if (res && res.msg) toast(res.msg, 'err'); return; }
+    if (res.mons) {
+      S.mons = res.mons;
+      buildSportPicker();
+      buildMonFilter();
+    }
+    if (res.thongKe) applyDashData(res.thongKe);
+    if (res.caiDat) S.cdList = res.caiDat;
+  });
+}
+
+function logout() {
+  var tk = S.token;
+  S.user = null;
+  S.token = '';
+  S.photoCache = {};
+  S.vdvAll = [];
+  S.vdvFiltered = [];
+  S.cardsAll = [];
+  S.cardsFiltered = [];
+  S.dvList = [];
+  S.cdList = [];
+  S.unitCounts = {};
+  if (tk) { try { G('dangXuat', [tk], function(){}); } catch(e) {} }
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pg-login').style.display = 'flex';
+  document.getElementById('dv-ma-login').value='';
+  document.getElementById('dv-mk-login').value='';
+  document.getElementById('ad-mk').value='';
+}
+
+function toggleMobileMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// =========================================================
+// ĐIỀU HƯỚNG
+// =========================================================
+function go(el, page, skipLoad) {
+  document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
+  document.querySelectorAll('.ni').forEach(function(n){ n.classList.remove('on'); });
+  var targetPg = document.getElementById('pg-' + page);
+  if (targetPg) targetPg.classList.add('on');
+
+  if (!el && S.user) {
+    var menuSel = S.user.isAdmin ? '#menu-ad' : '#menu-dv';
+    el = document.querySelector(menuSel + ' .ni[data-page="' + page + '"]');
+  }
+  if (el) el.classList.add('on');
+  S.curPage = page;
+  document.getElementById('sidebar').classList.remove('open');
+  if (skipLoad) return;
+
+  if (page==='dash')    loadDash();
+  if (page==='reg')     refreshRegQuota();
+  if (page==='list')    loadMyVDV();
+  if (page==='cards')   loadCardsPage();
+  if (page==='adm-vdv') loadAdmVDV();
+  if (page==='adm-dv')  loadAdmDV();
+  if (page==='adm-mon') loadAdmMon();
+  if (page==='adm-tk')  loadTK();
+  if (page==='adm-cd')  loadCD();
+}
+
+// =========================================================
+// DASHBOARD
+// =========================================================
+function applyDashData(d) {
+  if (!d) return;
+  document.getElementById('s-tong').textContent = d.tong;
+  document.getElementById('s-cho').textContent  = d.choDuyet;
+  document.getElementById('s-ok').textContent   = d.daDuyet;
+  document.getElementById('s-err').textContent  = d.tuChoi;
+
+  if (S.user && !S.user.isAdmin && d.theoMon) {
+    S.unitCounts = {};
+    Object.entries(d.theoMon).forEach(function(e){ S.unitCounts[e[0]] = e[1].soLuong; });
+    buildSportPicker();
+    updateRegQuotaBadge();
+  }
+  renderDashChart(d.theoMon);
+}
+
+function loadDash() {
+  if (!S.user || !S.token) return;
+  loading(true);
+  GAuth('layThongKe', [], function(res) {
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    applyDashData(res.data);
+  });
+}
+
+function renderDashChart(theoMon) {
+  var c = document.getElementById('dash-chart');
+  if (!theoMon || !Object.keys(theoMon).length) { c.innerHTML='<p class="empty">Chưa có dữ liệu</p>'; return; }
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;">';
+  Object.entries(theoMon).forEach(function(e) {
+    var m = e[1];
+    var pct = m.gioiHan > 0 ? Math.min(100, m.soLuong/m.gioiHan*100) : 0;
+    var cls = pct>=100?'pe':pct>=70?'pw':'';
+    html += '<div style="background:var(--bg);border-radius:10px;padding:11px 13px;border:1px solid var(--border);">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<span style="font-weight:700;font-size:13px;">'+esc(m.icon||'🏅')+' '+esc(m.ten)+'</span>'
+      + '<span style="font-size:11px;font-weight:700;color:var(--muted);">'+m.soLuong+'/'+m.gioiHan+'</span></div>'
+      + '<div class="prog"><div class="prog-b '+cls+'" style="width:'+pct+'%"></div></div></div>';
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+// =========================================================
+// ĐĂNG KÝ THEO MÔN (FORM ĐỘNG)
+// =========================================================
+function buildSportPicker() {
+  var c = document.getElementById('sport-picker');
+  if (!c) return;
+  if (!S.mons.length) { c.innerHTML='<p style="color:var(--muted);font-size:12px;">Không có môn thi</p>'; return; }
+
+  // Chọn sẵn môn đầu tiên đang hoạt động nếu chưa chọn
+  if (!S.selectedMonId || !S.mons.some(function(m){ return m.id===S.selectedMonId && m.trangThai==='HoatDong'; })) {
+    var first = S.mons.find(function(m){ return m.trangThai==='HoatDong' || !m.trangThai; });
+    if (first) S.selectedMonId = first.id;
+  }
+
+  c.innerHTML = S.mons.map(function(m){
+    var isActive = m.trangThai === 'HoatDong' || !m.trangThai;
+    var isSel = m.id === S.selectedMonId;
+    var used = S.unitCounts[m.id] !== undefined ? S.unitCounts[m.id] : null;
+    var quotaTxt = used !== null ? (used + '/' + m.gioiHan + ' VĐV') : ('Tối đa ' + m.gioiHan + ' VĐV');
+    return '<button type="button" class="sport-card'+(isSel?' active':'')+(isActive?'':' disabled')+'" '
+      + 'data-mon-id="'+esc(m.id)+'" '
+      + (isActive ? 'onclick="selectSport(\''+esc(m.id)+'\')"' : 'disabled title="Môn đang tạm khóa"')
+      + '>'
+      + '<span class="sc-ico">'+esc(m.icon||'🏅')+'</span>'
+      + '<div><div class="sc-name">'+esc(m.ten)+'</div>'
+      + '<div class="sc-meta">'+(isActive ? esc(quotaTxt) : 'Tạm khóa')+'</div></div>'
+      + '</button>';
+  }).join('');
+
+  renderRegSportForm();
+}
+
+function selectSport(monId) {
+  S.selectedMonId = monId;
+  document.querySelectorAll('#sport-picker .sport-card').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('data-mon-id') === monId);
+  });
+  renderRegSportForm();
+}
+
+function refreshRegQuota() {
+  if (!S.user || S.user.isAdmin || !S.token) return;
+  GAuth('layThongKe', [], function(res){
+    if (res && res.ok && res.data && res.data.theoMon) {
+      S.unitCounts = {};
+      Object.entries(res.data.theoMon).forEach(function(e){ S.unitCounts[e[0]] = e[1].soLuong; });
+      buildSportPicker();
+    }
+  });
+}
+
+function updateRegQuotaBadge() {
+  var qEl = document.getElementById('dyn-quota');
+  var mon = S.mons.find(function(m){ return m.id === S.selectedMonId; });
+  if (!qEl || !mon) return;
+  var used = S.unitCounts[mon.id] !== undefined ? S.unitCounts[mon.id] : 0;
+  qEl.style.display = 'inline-block';
+  qEl.textContent = 'Đơn vị đã ĐK: ' + used + ' / ' + mon.gioiHan + ' VĐV';
+  qEl.style.color = used >= mon.gioiHan ? 'var(--err)' : 'var(--pri)';
+}
+
+function renderRegSportForm() {
+  var mon = S.mons.find(function(m){ return m.id === S.selectedMonId; });
+  var titleEl = document.getElementById('dyn-title');
+  var listEl = document.getElementById('reg-batch-list');
+  var heading = document.getElementById('reg-form-heading');
+  S.batchIds = [];
+  S.nextBatchUid = 0;
+  if (!mon) {
+    titleEl.textContent = '🏅 Chọn một môn thi ở trên';
+    listEl.innerHTML = '<p style="color:var(--muted);font-size:13px;">Chưa chọn môn thi.</p>';
+    updateBatchSubmitBtn();
+    return;
+  }
+  heading.textContent = '2️⃣ Đăng ký VĐV môn ' + mon.ten + ' (một hoặc nhiều VĐV)';
+  titleEl.textContent = (mon.icon || '🏅') + ' Biểu mẫu chuyên môn — ' + mon.ten;
+  updateRegQuotaBadge();
+  listEl.innerHTML = '';
+  addBatchRow();
+}
+
+function updateBatchSubmitBtn() {
+  var btn = document.getElementById('btn-submit-batch');
+  if (!btn) return;
+  var n = S.batchIds.length || 0;
+  btn.textContent = n > 1 ? ('✅ Gửi đăng ký tất cả (' + n + ' VĐV)') : '✅ Gửi đăng ký (1 VĐV)';
+}
+
+function refreshBatchHeaders() {
+  var items = document.querySelectorAll('#reg-batch-list .batch-item');
+  items.forEach(function(el, i) {
+    var num = el.querySelector('.batch-num');
+    if (num) num.textContent = 'VĐV #' + (i + 1);
+    var rm = el.querySelector('.btn-rm-batch');
+    if (rm) rm.style.display = items.length > 1 ? 'inline-flex' : 'none';
+  });
+  updateBatchSubmitBtn();
+}
+
+function addBatchRow(cloneUid) {
+  var mon = S.mons.find(function(m){ return m.id === S.selectedMonId; });
+  if (!mon) { toast('Vui lòng chọn môn thi đấu trước!', 'wn'); return; }
+
+  var listEl = document.getElementById('reg-batch-list');
+  if (S.batchIds.length === 0) listEl.innerHTML = '';
+
+  var uid = S.nextBatchUid++;
+  var initChiTiet = {};
+  var initLop = '';
+  if (cloneUid !== undefined && cloneUid !== null) {
+    var oldBox = document.getElementById('reg-' + cloneUid + '-dyn-fields');
+    if (oldBox) initChiTiet = readDynamicFields(oldBox, mon.fields || [], 'reg-' + cloneUid, true) || {};
+    var oldLopEl = document.getElementById('reg-' + cloneUid + '-lop');
+    if (oldLopEl) initLop = oldLopEl.value.trim();
+  }
+
+  var p = 'reg-' + uid;
+  var div = document.createElement('div');
+  div.className = 'batch-item';
+  div.id = 'batch-row-' + uid;
+  div.setAttribute('data-uid', String(uid));
+  div.innerHTML = ''
+    + '<div class="batch-row-main">'
+    + '  <div style="position:relative;" title="Bấm để tải/chọn ảnh thẻ 3x4">'
+    + '    <div class="batch-photo-btn" id="' + p + '-photo-prev" onclick="document.getElementById(\'' + p + '-photo\').click()">'
+    + '      <span style="font-size:16px;">🧑</span>'
+    + '    </div>'
+    + '    <input type="file" id="' + p + '-photo" accept="image/*" style="display:none;" onchange="handlePhotoInput(this, \'' + p + '-photo-prev\', \'' + p + '-photo-data\')">'
+    + '    <input type="hidden" id="' + p + '-photo-data">'
+    + '  </div>'
+    + '  <span class="bdg b-info batch-num" style="padding:4px 6px;font-size:11.5px;font-weight:700;">VĐV #' + (S.batchIds.length + 1) + '</span>'
+    + '  <input id="' + p + '-ht" class="fc fc-sm" style="flex:2.2;min-width:130px;" placeholder="Họ và tên VĐV *">'
+    + '  <input id="' + p + '-ns" class="fc fc-sm" type="date" style="flex:1.4;min-width:115px;" title="Ngày sinh">'
+    + '  <select id="' + p + '-gt" class="fc fc-sm" style="width:72px;"><option value="">GT *</option><option>Nam</option><option>Nữ</option></select>'
+    + '  <input id="' + p + '-lop" class="fc fc-sm" style="width:65px;" placeholder="Lớp" value="' + esc(initLop) + '">'
+    + '  <input id="' + p + '-cccd" class="fc fc-sm" style="width:115px;" placeholder="Số CCCD *">'
+    + '  <input id="' + p + '-mhs" class="fc fc-sm" style="width:100px;" placeholder="Mã HS *">'
+    + '  <div class="batch-actions" style="margin-left:auto;">'
+    + '    <button type="button" class="btn btn-o btn-sm" style="padding:3px 7px;font-size:11.5px;" onclick="autofillBatchRow(' + uid + ')" title="Tự điền hồ sơ theo CCCD/Mã HS">🔍 Tự điền</button>'
+    + '    <button type="button" class="btn btn-o btn-sm" style="padding:3px 7px;font-size:11.5px;" onclick="addBatchRow(' + uid + ')" title="Nhân bản dòng này">📋</button>'
+    + '    <button type="button" class="btn btn-err btn-sm btn-rm-batch" style="padding:3px 7px;font-size:11.5px;" onclick="removeBatchRow(' + uid + ')" title="Xóa VĐV này">🗑️</button>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="batch-row-dyn">'
+    + '  <span style="font-size:11.5px;font-weight:700;color:var(--pri-dark);display:flex;align-items:center;gap:3px;flex-shrink:0;">'
+    + '    ' + esc(mon.icon || '🏅') + ' ' + esc(mon.ten) + ':'
+    + '  </span>'
+    + '  <div id="' + p + '-dyn-fields" style="flex:1;min-width:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;"></div>'
+    + '  <input id="' + p + '-gc" class="fc fc-sm" style="width:120px;" placeholder="Ghi chú...">'
+    + '</div>';
+
+  listEl.appendChild(div);
+  S.batchIds.push(uid);
+  renderDynamicFields(document.getElementById(p + '-dyn-fields'), mon.fields || [], p, initChiTiet);
+  refreshBatchHeaders();
+}
+
+function removeBatchRow(uid) {
+  if (S.batchIds.length <= 1) return;
+  S.batchIds = S.batchIds.filter(function(id){ return id !== uid; });
+  var el = document.getElementById('batch-row-' + uid);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+  refreshBatchHeaders();
+}
+
+function setPhotoPreview(prevId, dataId, valueToStore, previewDataUrl) {
+  var prev = document.getElementById(prevId);
+  var hid = document.getElementById(dataId);
+  if (hid) hid.value = valueToStore || '';
+  var disp = previewDataUrl !== undefined ? previewDataUrl : valueToStore;
+  if (prev) {
+    prev.innerHTML = disp ? '<img src="' + disp + '" alt="Ảnh thẻ">' : '🧑';
+  }
+}
+
+function clearPhotoField(inputId, prevId, dataId, changedId) {
+  var inp = document.getElementById(inputId);
+  if (inp) inp.value = '';
+  if (changedId) {
+    var ch = document.getElementById(changedId);
+    if (ch) ch.value = '1';
+  }
+  setPhotoPreview(prevId, dataId, '', '');
+}
+
+function compressImageDataUrlWithCanvas(srcDataUrl, cb) {
+  var img = new Image();
+  img.onload = function() {
+    var W = 210, H = 280;
+    var canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    // Center-crop cover theo tỷ lệ 3:4
+    var srcRatio = img.width / img.height;
+    var dstRatio = W / H;
+    var sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (srcRatio > dstRatio) {
+      sw = img.height * dstRatio;
+      sx = (img.width - sw) / 2;
+    } else {
+      sh = img.width / dstRatio;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    var out = canvas.toDataURL('image/jpeg', 0.72);
+    if (out.length > 65000) out = canvas.toDataURL('image/jpeg', 0.55);
+    if (out.length > 78000) {
+      toast('Ảnh sau nén vẫn quá lớn, vui lòng chọn ảnh khác!', 'err');
+      return;
+    }
+    cb(out);
+  };
+  img.onerror = function() { toast('Không đọc được ảnh!', 'err'); };
+  img.src = srcDataUrl;
+}
+
+function handlePhotoInput(input, prevId, dataId, changedId) {
+  var file = input && input.files ? input.files[0] : null;
+  if (!file) return;
+  if (!file.type || file.type.indexOf('image/') !== 0) {
+    toast('Vui lòng chọn tệp hình ảnh hợp lệ!', 'wn');
+    input.value = '';
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    compressImageDataUrlWithCanvas(ev.target.result, function(compressedDataUrl) {
+      if (changedId) {
+        var ch = document.getElementById(changedId);
+        if (ch) ch.value = '1';
+      }
+      setPhotoPreview(prevId, dataId, compressedDataUrl, compressedDataUrl);
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function autofillBatchRow(uid) {
+  var p = 'reg-' + uid;
+  var cccd = (document.getElementById(p + '-cccd').value || '').trim();
+  var mhs  = (document.getElementById(p + '-mhs').value || '').trim();
+  var kw = cccd || mhs;
+  if (!kw) {
+    toast('Hãy nhập sẵn Số CCCD hoặc Mã học sinh vào ô trước khi bấm Tự điền!', 'wn');
+    return;
+  }
+  loading(true);
+  GAuth('timHoSoTheoDinhDanh', [kw], function(res) {
+    loading(false);
+    if (!res.ok || !res.data) { toast(res.msg || 'Không tìm thấy hồ sơ!', 'wn'); return; }
+    var d = res.data;
+    document.getElementById(p + '-ht').value = d.hoTen || '';
+    var ns = d.ngaySinh || '';
+    if (ns && ns.includes('/')) {
+      var pts = ns.split('/');
+      ns = pts[2] + '-' + pts[1] + '-' + pts[0];
+    }
+    document.getElementById(p + '-ns').value = ns;
+    document.getElementById(p + '-gt').value = d.gioiTinh || '';
+    document.getElementById(p + '-lop').value = d.lop || '';
+    document.getElementById(p + '-cccd').value = d.cccd || '';
+    document.getElementById(p + '-mhs').value = d.maHocSinh || '';
+    if (d.anhRef) {
+      setPhotoPreview(p + '-photo-prev', p + '-photo-data', d.anhRef, d.anhDataUrl || '');
+    }
+    toast('Đã tự điền thông tin VĐV ' + d.hoTen + '!', 'ok');
+  });
+}
+
+/**
+ * Render form động dùng chung cho Đăng ký và Modal Sửa
+ */
+function renderDynamicFields(container, fields, prefix, initialData) {
+  var init = initialData || {};
+  if (!fields || !fields.length) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px;">Môn này không yêu cầu trường bổ sung.</p>';
+    return;
+  }
+
+  container.innerHTML = fields.map(function(f){
+    var fid = prefix + '-fld-' + f.key;
+    var reqMark = f.required ? ' <span class="req">*</span>' : '';
+    var fullCls = f.type === 'checkboxes' ? ' dyn-full' : '';
+    var val = init[f.key];
+    var html = '<div class="fg'+fullCls+'" id="'+prefix+'-wrap-'+esc(f.key)+'" data-field-key="'+esc(f.key)+'">';
+    html += '<label for="'+fid+'">'+esc(f.label)+reqMark+'</label>';
+
+    if (f.type === 'select') {
+      html += '<select id="'+fid+'" class="fc" data-dyn-key="'+esc(f.key)+'">';
+      html += '<option value="">-- Chọn '+esc(f.label)+' --</option>';
+      (f.options || []).forEach(function(opt){
+        var sel = (val === opt) ? ' selected' : '';
+        html += '<option value="'+esc(opt)+'"'+sel+'>'+esc(opt)+'</option>';
+      });
+      html += '</select>';
+    } else if (f.type === 'checkboxes') {
+      var arr = Array.isArray(val) ? val : (val ? String(val).split(',').map(function(s){return s.trim();}) : []);
+      html += '<div class="cb-grid" id="'+fid+'">';
+      (f.options || []).forEach(function(opt, idx){
+        var chk = arr.indexOf(opt) !== -1;
+        html += '<label class="cb-item'+(chk?' on':'')+'">'
+          + '<input type="checkbox" name="'+fid+'" value="'+esc(opt)+'"'+(chk?' checked':'')+'>'
+          + '<span>'+esc(opt)+'</span></label>';
+      });
+      html += '</div>';
+    } else {
+      var inputType = f.type === 'number' ? 'number' : 'text';
+      var stepAttr = f.type === 'number' ? ' step="any" min="0"' : '';
+      html += '<input id="'+fid+'" type="'+inputType+'"'+stepAttr+' class="fc" data-dyn-key="'+esc(f.key)+'" placeholder="'+esc(f.placeholder||'')+'" value="'+esc(val||'')+'">';
+    }
+    html += '</div>';
+    return html;
+  }).join('');
+
+  // Gắn sự kiện đổi trạng thái .on cho checkbox và cập nhật điều kiện showIf
+  container.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      if (this.parentElement) this.parentElement.classList.toggle('on', this.checked);
+      updateConditionalFields(container, fields, prefix);
+    });
+  });
+  container.querySelectorAll('select, input').forEach(function(el){
+    el.addEventListener('change', function(){ updateConditionalFields(container, fields, prefix); });
+  });
+  updateConditionalFields(container, fields, prefix);
+}
+
+function updateConditionalFields(container, fields, prefix) {
+  var current = readDynamicFields(container, fields, prefix, true);
+  fields.forEach(function(f){
+    if (!f.showIf) return;
+    var wrap = document.getElementById(prefix + '-wrap-' + f.key);
+    if (!wrap) return;
+    var depVal = current[f.showIf.key];
+    var depStr = Array.isArray(depVal) ? depVal.join(', ') : String(depVal || '');
+    var visible = true;
+    if (f.showIf.equals && depStr !== f.showIf.equals) visible = false;
+    if (f.showIf.contains && depStr.indexOf(f.showIf.contains) === -1) visible = false;
+    wrap.style.display = visible ? 'block' : 'none';
+  });
+}
+
+function readDynamicFields(container, fields, prefix, skipValidation) {
+  var result = {};
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    var wrap = document.getElementById(prefix + '-wrap-' + f.key);
+    var isHidden = wrap && wrap.style.display === 'none';
+    if (isHidden) continue;
+
+    var fid = prefix + '-fld-' + f.key;
+    if (f.type === 'checkboxes') {
+      var checked = Array.from(container.querySelectorAll('input[name="'+fid+'"]:checked')).map(function(cb){ return cb.value; });
+      if (!skipValidation && f.required && checked.length === 0) {
+        toast('Vui lòng chọn "' + f.label + '"!', 'wn');
+        return null;
+      }
+      result[f.key] = checked;
+    } else {
+      var el = document.getElementById(fid);
+      var val = el ? el.value.trim() : '';
+      if (!skipValidation && f.required && !val) {
+        toast('Vui lòng nhập/chọn "' + f.label + '"!', 'wn');
+        if (el) el.focus();
+        return null;
+      }
+      if (!skipValidation && val && f.type === 'number' && (isNaN(Number(val)) || Number(val) <= 0)) {
+        toast('"' + f.label + '" phải là số dương hợp lệ!', 'wn');
+        if (el) el.focus();
+        return null;
+      }
+      result[f.key] = val;
+    }
+  }
+  return result;
+}
+
+function buildMonFilter() {
+  ['fl-mon','af-mon','rpt-mon','cf-mon'].forEach(function(id){
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var oldVal = sel.value;
+    sel.innerHTML = id === 'rpt-mon' ? '<option value="">Xuất tất cả môn</option>' : '<option value="">Tất cả môn</option>';
+    S.mons.forEach(function(m){
+      sel.innerHTML += '<option value="'+esc(m.id)+'">'+esc((m.icon||'')+' '+m.ten)+'</option>';
+    });
+    if (oldVal) sel.value = oldVal;
+  });
+}
+
+function clearForm() {
+  renderRegSportForm();
+}
+
+function submitReg() {
+  var mon = S.mons.find(function(m){ return m.id === S.selectedMonId; });
+  if (!mon) { toast('Vui lòng chọn môn thi đấu!', 'wn'); return; }
+  if (!S.batchIds.length) { toast('Danh sách VĐV đang trống!', 'wn'); return; }
+
+  var vdvs = [];
+  for (var i = 0; i < S.batchIds.length; i++) {
+    var uid = S.batchIds[i];
+    var p = 'reg-' + uid;
+    var labelNum = S.batchIds.length > 1 ? (' (VĐV #' + (i + 1) + ')') : '';
+    var htEl = document.getElementById(p + '-ht');
+    var nsEl = document.getElementById(p + '-ns');
+    var gtEl = document.getElementById(p + '-gt');
+    var cccdEl = document.getElementById(p + '-cccd');
+    var mhsEl = document.getElementById(p + '-mhs');
+
+    var ht   = htEl ? htEl.value.trim() : '';
+    var ns   = nsEl ? nsEl.value : '';
+    var gt   = gtEl ? gtEl.value : '';
+    var lop  = document.getElementById(p + '-lop').value.trim();
+    var cccd = cccdEl ? cccdEl.value.trim().replace(/\s+/g, '') : '';
+    var mhs  = mhsEl ? mhsEl.value.trim() : '';
+    var photoData = document.getElementById(p + '-photo-data').value;
+    var gc   = document.getElementById(p + '-gc').value.trim();
+
+    if (!ht) { toast('Nhập họ tên VĐV' + labelNum + '!', 'wn'); if(htEl) htEl.focus(); return; }
+    if (!ns) { toast('Chọn ngày sinh' + labelNum + '!', 'wn'); if(nsEl) nsEl.focus(); return; }
+    if (!gt) { toast('Chọn giới tính' + labelNum + '!', 'wn'); if(gtEl) gtEl.focus(); return; }
+    if (!/^(\d{9}|\d{12})$/.test(cccd)) {
+      toast('Số CCCD/ĐDCN phải gồm 9 hoặc 12 chữ số' + labelNum + '!', 'wn');
+      if(cccdEl) cccdEl.focus();
+      return;
+    }
+    if (!mhs) { toast('Nhập Mã học sinh' + labelNum + '!', 'wn'); if(mhsEl) mhsEl.focus(); return; }
+
+    var box = document.getElementById(p + '-dyn-fields');
+    var chiTiet = readDynamicFields(box, mon.fields || [], p, false);
+    if (chiTiet === null) return;
+
+    vdvs.push({
+      hoTen: ht, ngaySinh: ns, gioiTinh: gt, lop: lop,
+      cccd: cccd, maHocSinh: mhs, anhThe: photoData,
+      maMon: mon.id, chiTiet: chiTiet, ghiChu: gc
+    });
+  }
+
+  loading(true);
+  GAuth('dangKyNhieuVDV', [vdvs], function(res) {
+    loading(false);
+    toast(res.msg, res.ok ? 'ok' : 'err');
+    if (res.ok) {
+      clearForm();
+      refreshRegQuota();
+      setTimeout(function(){ go(null,'list'); }, 600);
+    }
+  });
+}
+
+// =========================================================
+// DANH SÁCH VĐV (Đơn vị) + PHÂN TRANG + TẢI ẢNH LƯỜI
+// =========================================================
+function loadMyVDV() {
+  loading(true);
+  GAuth('layDanhSachVDV', [null], function(res) {
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    S.vdvAll = res.data || [];
+    S.listPage = 1;
+    filterList(true);
+  });
+}
+
+function filterList(keepPage) {
+  if (!keepPage) S.listPage = 1;
+  var kw  = document.getElementById('fl-kw').value.toLowerCase();
+  var mon = document.getElementById('fl-mon').value;
+  var tt  = document.getElementById('fl-tt').value;
+  var ds  = S.vdvAll.filter(function(v){
+    if (kw && !String(v.hoTen).toLowerCase().includes(kw) && !String(v.lop).toLowerCase().includes(kw) &&
+        !String(v.noiDung).toLowerCase().includes(kw) && !String(v.chiTietHienThi).toLowerCase().includes(kw) &&
+        !String(v.cccd).toLowerCase().includes(kw) && !String(v.maHocSinh).toLowerCase().includes(kw)) return false;
+    if (mon && v.maMon !== mon) return false;
+    if (tt  && v.trangThai !== tt) return false;
+    return true;
+  });
+  S.vdvFiltered = ds;
+  renderList(ds);
+}
+
+function formatDetailCell(v) {
+  var html = '';
+  if (v.noiDung) html += '<div><span class="bdg b-info">'+esc(v.noiDung)+'</span></div>';
+  if (v.chiTietHienThi) html += '<div class="detail-cell" style="margin-top:3px;">'+esc(v.chiTietHienThi)+'</div>';
+  return html || '-';
+}
+
+function getSportIcon(maMon) {
+  var m = S.mons.find(function(x){ return x.id === maMon; });
+  return m ? (m.icon || '🏅') : '🏅';
+}
+
+function thumbHtml(v) {
+  var cached = S.photoCache[v.id];
+  if (cached) return '<img class="thumb-sm" data-photo-id="'+esc(v.id)+'" src="'+cached+'" alt="Ảnh thẻ">';
+  if (v.coAnh) return '<span class="thumb-sm" data-photo-id="'+esc(v.id)+'">⏳</span>';
+  return '<span class="thumb-sm">🧑</span>';
+}
+
+function hydratePhotos(items, onComplete) {
+  var missing = [];
+  (items || []).forEach(function(v) {
+    if (v && v.coAnh && !S.photoCache[v.id] && missing.indexOf(v.id) === -1) {
+      missing.push(v.id);
+    }
+  });
+  if (!missing.length) {
+    if (onComplete) onComplete();
+    return;
+  }
+  // Tải từng lô tối đa 60 ảnh
+  var batch = missing.slice(0, 60);
+  GAuth('layAnhTheoDanhSach', [batch], function(res) {
+    if (res && res.ok && res.data) {
+      Object.keys(res.data).forEach(function(id) {
+        var url = res.data[id];
+        if (!url) return;
+        S.photoCache[id] = url;
+        document.querySelectorAll('[data-photo-id="' + id + '"]').forEach(function(el) {
+          if (el.tagName === 'IMG') {
+            el.src = url;
+          } else if (el.classList.contains('id-card-photo')) {
+            el.innerHTML = '<img src="' + url + '" alt="Ảnh thẻ">';
+          } else if (el.classList.contains('thumb-sm')) {
+            var img = document.createElement('img');
+            img.className = 'thumb-sm';
+            img.setAttribute('data-photo-id', id);
+            img.src = url;
+            img.alt = 'Ảnh thẻ';
+            if (el.parentNode) el.parentNode.replaceChild(img, el);
+          }
+        });
+      });
+    }
+    if (onComplete) onComplete();
+  });
+}
+
+function renderPager(elId, page, totalItems, onPageFn) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var totalPages = Math.max(1, Math.ceil(totalItems / S.PAGE_SIZE));
+  if (totalItems <= S.PAGE_SIZE) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  var start = (page - 1) * S.PAGE_SIZE + 1;
+  var end = Math.min(totalItems, page * S.PAGE_SIZE);
+  el.innerHTML = '<span>Hiển thị <b>' + start + '–' + end + '</b> / ' + totalItems + ' VĐV</span>'
+    + '<div class="pager-btns">'
+    + '<button class="btn btn-o btn-sm" ' + (page <= 1 ? 'disabled' : 'onclick="' + onPageFn + '(' + (page - 1) + ')"') + '>« Trước</button>'
+    + '<span>Trang <b>' + page + '</b>/' + totalPages + '</span>'
+    + '<button class="btn btn-o btn-sm" ' + (page >= totalPages ? 'disabled' : 'onclick="' + onPageFn + '(' + (page + 1) + ')"') + '>Sau »</button>'
+    + '</div>';
+}
+
+function setListPage(p) { S.listPage = p; renderList(S.vdvFiltered); }
+function setAdmPage(p)  { S.admPage  = p; renderAdmVDV(S.vdvFiltered); }
+function setCardsPage(p){ S.cardsPage = p; renderCardsGrid(); }
+
+function renderList(ds) {
+  var tb = document.getElementById('tb-list');
+  var em = document.getElementById('list-empty');
+  if (!ds.length) { tb.innerHTML=''; em.style.display='block'; renderPager('list-pager',1,0,'setListPage'); return; }
+  em.style.display='none';
+
+  var start = (S.listPage - 1) * S.PAGE_SIZE;
+  var pageItems = ds.slice(start, start + S.PAGE_SIZE);
+  tb.innerHTML = pageItems.map(function(v, idx){
+    var i = start + idx;
+    var noteHtml = v.ghiChu ? '<div class="note-txt '+(v.trangThai==='TuChoi'?'err':'')+'">'+esc(v.ghiChu)+'</div>' : '';
+    return '<tr>'
+      + '<td>'+(i+1)+'</td>'
+      + '<td><div class="athlete-cell">'+thumbHtml(v)+'<div><b>'+esc(v.hoTen)+'</b></div></div></td>'
+      + '<td><div><small>CCCD:</small> <b>'+esc(v.cccd||'-')+'</b></div><div class="id-sub">Mã HS: <b>'+esc(v.maHocSinh||'-')+'</b></div></td>'
+      + '<td>'+esc(v.ngaySinh)+'<br><small style="color:var(--muted)">'+esc(v.gioiTinh)+(v.lop?' • '+esc(v.lop):'')+'</small></td>'
+      + '<td><b>'+esc(getSportIcon(v.maMon))+' '+esc(v.tenMon)+'</b></td>'
+      + '<td>'+formatDetailCell(v)+'</td>'
+      + '<td>'+bdg(v.trangThai)+noteHtml+'</td>'
+      + '<td style="display:flex;gap:4px;flex-wrap:wrap;">'
+      + '<button class="btn btn-o btn-sm" data-idx="'+i+'" onclick="openSingleCardFromList(this)" title="Xem/In thẻ thi đấu">🪪</button>'
+      + (v.trangThai!=='DaDuyet' ? '<button class="btn btn-o btn-sm" data-idx="'+i+'" onclick="openEditFromList(this)" title="Sửa">✏️</button>' : '')
+      + (v.trangThai!=='DaDuyet' ? '<button class="btn btn-err btn-sm" data-idx="'+i+'" onclick="deleteFromList(this)" title="Xóa">🗑️</button>' : '')
+      + '</td></tr>';
+  }).join('');
+  renderPager('list-pager', S.listPage, ds.length, 'setListPage');
+  hydratePhotos(pageItems);
+}
+
+function openSingleCardFromList(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) openCardModal([v], '🪪 Thẻ thi đấu — ' + v.hoTen);
+}
+
+function openEditFromList(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) openEdit(v);
+}
+
+function deleteFromList(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) confirmDelete(v.rowIndex, S.user.maDonVi, v.id);
+}
+
+// =========================================================
+// ĐỔI MẬT KHẨU
+// =========================================================
+function doiMK() {
+  var cu  = document.getElementById('pw-cu').value;
+  var moi = document.getElementById('pw-moi').value;
+  var moi2= document.getElementById('pw-moi2').value;
+  if (!cu||!moi||!moi2) { toast('Điền đầy đủ!','wn'); return; }
+  if (moi !== moi2) { toast('Mật khẩu mới không khớp!','wn'); return; }
+  if (moi.length < 6) { toast('Mật khẩu ít nhất 6 ký tự!','wn'); return; }
+  loading(true);
+  GAuth('doiMatKhau', [cu, moi], function(res){
+    loading(false);
+    toast(res.msg, res.ok ? 'ok' : 'err');
+    if (res.ok) { document.getElementById('pw-cu').value=''; document.getElementById('pw-moi').value=''; document.getElementById('pw-moi2').value=''; }
+  });
+}
+
+// =========================================================
+// ADMIN: DUYỆT VĐV
+// =========================================================
+function loadAdmVDV() {
+  loading(true);
+  GAuth('layDanhSachVDV', [null], function(res) {
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    S.vdvAll = res.data || [];
+    S.admPage = 1;
+    var dvs = {};
+    S.vdvAll.forEach(function(v){ dvs[v.maDonVi] = v.tenDonVi; });
+    var sel = document.getElementById('af-dv');
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Tất cả đơn vị</option>';
+    Object.entries(dvs).forEach(function(e){ sel.innerHTML += '<option value="'+esc(e[0])+'">'+esc(e[1])+'</option>'; });
+    if (prev && dvs[prev]) sel.value = prev;
+    filterAdm(true);
+  });
+}
+
+function filterAdm(keepPage) {
+  if (!keepPage) S.admPage = 1;
+  var kw  = document.getElementById('af-kw').value.toLowerCase();
+  var dv  = document.getElementById('af-dv').value;
+  var mon = document.getElementById('af-mon').value;
+  var tt  = document.getElementById('af-tt').value;
+  var ds = S.vdvAll.filter(function(v){
+    if (kw && !String(v.hoTen).toLowerCase().includes(kw) && !String(v.tenDonVi).toLowerCase().includes(kw) &&
+        !String(v.lop).toLowerCase().includes(kw) && !String(v.noiDung).toLowerCase().includes(kw) &&
+        !String(v.chiTietHienThi).toLowerCase().includes(kw) && !String(v.cccd).toLowerCase().includes(kw) &&
+        !String(v.maHocSinh).toLowerCase().includes(kw)) return false;
+    if (dv  && v.maDonVi  !== dv)  return false;
+    if (mon && v.maMon     !== mon) return false;
+    if (tt  && v.trangThai !== tt)  return false;
+    return true;
+  });
+  S.vdvFiltered = ds;
+  renderAdmVDV(ds);
+}
+
+function renderAdmVDV(ds) {
+  var tb = document.getElementById('tb-adm-vdv');
+  var em = document.getElementById('adm-vdv-empty');
+  if (!ds.length) { tb.innerHTML=''; em.style.display='block'; renderPager('adm-pager',1,0,'setAdmPage'); return; }
+  em.style.display='none';
+  document.getElementById('chk-all').checked = false;
+
+  var start = (S.admPage - 1) * S.PAGE_SIZE;
+  var pageItems = ds.slice(start, start + S.PAGE_SIZE);
+  tb.innerHTML = pageItems.map(function(v, idx){
+    var i = start + idx;
+    var noteHtml = v.ghiChu ? '<div class="note-txt '+(v.trangThai==='TuChoi'?'err':'')+'">'+esc(v.ghiChu)+'</div>' : '';
+    return '<tr>'
+      + '<td><input type="checkbox" class="chk-row" value="'+esc(v.id)+'"></td>'
+      + '<td><small>'+esc(v.maDonVi)+'</small><br><b>'+esc(v.tenDonVi)+'</b></td>'
+      + '<td><div class="athlete-cell">'+thumbHtml(v)+'<div><b>'+esc(v.hoTen)+'</b></div></div></td>'
+      + '<td><div><small>CCCD:</small> <b>'+esc(v.cccd||'-')+'</b></div><div class="id-sub">Mã HS: <b>'+esc(v.maHocSinh||'-')+'</b></div></td>'
+      + '<td>'+esc(v.ngaySinh)+'<br><small style="color:var(--muted)">'+esc(v.gioiTinh)+(v.lop?' • '+esc(v.lop):'')+'</small></td>'
+      + '<td><b>'+esc(getSportIcon(v.maMon))+' '+esc(v.tenMon)+'</b></td>'
+      + '<td>'+formatDetailCell(v)+'</td>'
+      + '<td><small>'+esc(v.thoiGianDK)+'</small></td>'
+      + '<td>'+bdg(v.trangThai)+noteHtml+'</td>'
+      + '<td style="display:flex;gap:4px;flex-wrap:wrap;">'
+      + '<button class="btn btn-o btn-sm" data-idx="'+i+'" onclick="openSingleCardFromAdm(this)" title="Xem/In thẻ thi đấu">🪪</button>'
+      + (v.trangThai!=='DaDuyet' ? '<button class="btn btn-ok btn-sm" data-idx="'+i+'" onclick="approveIdx(this,\'DaDuyet\')" title="Duyệt">✅</button>' : '')
+      + (v.trangThai!=='TuChoi' ? '<button class="btn btn-err btn-sm" data-idx="'+i+'" onclick="openRejectIdx(this)" title="Từ chối">❌</button>' : '')
+      + '<button class="btn btn-err btn-sm" data-idx="'+i+'" onclick="deleteAdmIdx(this)" title="Xóa">🗑️</button>'
+      + '</td></tr>';
+  }).join('');
+  renderPager('adm-pager', S.admPage, ds.length, 'setAdmPage');
+  hydratePhotos(pageItems);
+}
+
+function openSingleCardFromAdm(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) openCardModal([v], '🪪 Thẻ thi đấu — ' + v.hoTen);
+}
+
+function approveIdx(btn, status) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) approve(v.rowIndex, status, '', v.id);
+}
+
+function openRejectIdx(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) openReject(v.rowIndex, v.id);
+}
+
+function deleteAdmIdx(btn) {
+  var v = S.vdvFiltered[parseInt(btn.getAttribute('data-idx'), 10)];
+  if (v) confirmDelete(v.rowIndex, 'ADMIN', v.id);
+}
+
+function checkAll(checked) {
+  document.querySelectorAll('.chk-row').forEach(function(c){ c.checked=checked; });
+}
+
+function bulkApprove(status) {
+  var ids = Array.from(document.querySelectorAll('.chk-row:checked')).map(function(c){return c.value;});
+  if (!ids.length) { toast('Chọn ít nhất 1 VĐV!','wn'); return; }
+  var label = status==='DaDuyet' ? 'Duyệt' : 'Từ chối';
+  askConfirm(label + ' ' + ids.length + ' VĐV đã chọn?', function(){
+    loading(true);
+    GAuth('duyetHangLoat', [ids, status], function(res){
+      loading(false);
+      toast(res.msg, res.ok?'ok':'err');
+      if(res.ok){ loadAdmVDV(); }
+    });
+  });
+}
+
+function approve(rowIndex, status, ghiChu, vdvId) {
+  loading(true);
+  GAuth('duyetVDV', [rowIndex, status, ghiChu, vdvId], function(res){
+    loading(false);
+    toast(res.msg, res.ok?'ok':'err');
+    if(res.ok){ loadAdmVDV(); }
+  });
+}
+
+function openReject(rowIndex, vdvId) {
+  document.getElementById('reject-reason').value='';
+  document.getElementById('mo-reject').classList.add('on');
+  document.getElementById('reject-ok').onclick = function(){
+    var reason = document.getElementById('reject-reason').value.trim();
+    if (!reason) { toast('Nhập lý do từ chối!','wn'); return; }
+    closeModal('mo-reject');
+    approve(rowIndex, 'TuChoi', reason, vdvId);
+  };
+}
+
+// =========================================================
+// ADMIN: QUẢN LÝ ĐƠN VỊ
+// =========================================================
+function loadAdmDV() {
+  loading(true);
+  GAuth('layDanhSachDonVi', [], function(res){
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    S.dvList = res.data || [];
+    renderAdmDV(S.dvList);
+  });
+}
+
+function renderAdmDV(ds) {
+  var tb = document.getElementById('tb-dv');
+  var em = document.getElementById('dv-empty');
+  if (!ds.length) { tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  tb.innerHTML = ds.map(function(dv,i){
+    var isOk = dv.trangThai==='HoatDong';
+    return '<tr>'
+      + '<td>'+(i+1)+'</td>'
+      + '<td><code>'+esc(dv.maDonVi)+'</code></td>'
+      + '<td><b>'+esc(dv.tenDonVi)+'</b></td>'
+      + '<td>'+esc(dv.loaiDonVi)+'</td>'
+      + '<td>'+esc(dv.dienThoai)+'</td>'
+      + '<td>'+esc(dv.nguoiLienHe)+'</td>'
+      + '<td>'+(isOk ? '<span class="bdg b-ok">Hoạt động</span>' : '<span class="bdg b-err">Khóa</span>')+'</td>'
+      + '<td style="display:flex;gap:4px;">'
+      + '<button class="btn btn-o btn-sm" onclick="openEditDV('+i+')">✏️ Sửa</button>'
+      + '<button class="btn btn-sm '+(isOk?'btn-err':'btn-ok')+'" onclick="lockDV('+i+')">'+(isOk?'🔒':'🔓')+'</button>'
+      + '<button class="btn btn-o btn-sm" onclick="doResetPW('+i+')">🔑 Reset MK</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+function openAddDV() {
+  document.getElementById('mo-dv-title').textContent='Thêm đơn vị';
+  document.getElementById('edit-ma').value='';
+  ['dv-ma','dv-mk','dv-ten','dv-dt','dv-email','dv-nlh','dv-dc'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('dv-ma').disabled=false;
+  document.getElementById('mo-dv').classList.add('on');
+}
+
+function openEditDV(idx) {
+  var dv = S.dvList[idx];
+  if (!dv) return;
+  document.getElementById('mo-dv-title').textContent='Sửa đơn vị';
+  document.getElementById('edit-ma').value=dv.maDonVi;
+  document.getElementById('dv-ma').value=dv.maDonVi; document.getElementById('dv-ma').disabled=true;
+  document.getElementById('dv-ten').value=dv.tenDonVi; document.getElementById('dv-loai').value=dv.loaiDonVi||'Trường THPT';
+  document.getElementById('dv-dt').value=dv.dienThoai||''; document.getElementById('dv-email').value=dv.email||'';
+  document.getElementById('dv-nlh').value=dv.nguoiLienHe||''; document.getElementById('dv-dc').value=dv.diaChi||'';
+  document.getElementById('dv-mk').value='';
+  document.getElementById('mo-dv').classList.add('on');
+}
+
+function saveDV() {
+  var editMa = document.getElementById('edit-ma').value;
+  var dv = {
+    maDonVi: editMa || document.getElementById('dv-ma').value.trim(),
+    tenDonVi: document.getElementById('dv-ten').value.trim(),
+    loaiDonVi: document.getElementById('dv-loai').value,
+    dienThoai: document.getElementById('dv-dt').value.trim(),
+    email: document.getElementById('dv-email').value.trim(),
+    nguoiLienHe: document.getElementById('dv-nlh').value.trim(),
+    diaChi: document.getElementById('dv-dc').value.trim(),
+    matKhau: document.getElementById('dv-mk').value.trim() || undefined
+  };
+  if (!dv.maDonVi) { toast('Nhập mã đơn vị!','wn'); return; }
+  if (!dv.tenDonVi) { toast('Nhập tên đơn vị!','wn'); return; }
+  if (dv.matKhau === undefined) delete dv.matKhau;
+
+  loading(true);
+  var fn = editMa ? 'capNhatDonVi' : 'themDonVi';
+  GAuth(fn, [dv], function(res){
+    loading(false);
+    toast(res.msg, res.ok?'ok':'err');
+    if (res.ok) {
+      closeModal('mo-dv');
+      loadAdmDV();
+      if (res.matKhauMacDinh) toast('Mật khẩu: ' + res.matKhauMacDinh,'inf');
+    }
+  });
+}
+
+function lockDV(idx) {
+  var dv = S.dvList[idx];
+  if (!dv) return;
+  var isOk = dv.trangThai === 'HoatDong';
+  var newST = isOk ? 'KhoaTaiKhoan' : 'HoatDong';
+  askConfirm((isOk?'Khóa':'Mở khóa')+' đơn vị "'+dv.tenDonVi+'"?', function(){
+    loading(true);
+    GAuth('capNhatDonVi', [{maDonVi:dv.maDonVi, tenDonVi:dv.tenDonVi, trangThai:newST}], function(res){
+      loading(false);
+      toast(res.msg, res.ok?'ok':'err');
+      if(res.ok) loadAdmDV();
+    });
+  });
+}
+
+function doResetPW(idx) {
+  var dv = S.dvList[idx];
+  if (!dv) return;
+  askConfirm('Reset mật khẩu đơn vị "'+dv.maDonVi+'"?', function(){
+    loading(true);
+    GAuth('resetMatKhau', [dv.maDonVi], function(res){
+      loading(false);
+      toast(res.msg, res.ok?'ok':'err');
+    });
+  });
+}
+
+// =========================================================
+// ADMIN: IMPORT ĐƠN VỊ TỪ EXCEL / COPY & DÁN
+// =========================================================
+S.importDVList = [];
+
+function downloadDVTemplate() {
+  var csv = "\uFEFFMã đơn vị,Tên đơn vị,Loại đơn vị,Email,Điện thoại,Người liên hệ,Địa chỉ,Mật khẩu\n"
+    + "THPT01,Trường THPT Chuyên Lê Hồng Phong,Trường THPT,thpt01@hkpd.vn,02838398506,Thầy Nguyễn Văn A,235 Nguyễn Văn Cừ Q.5,\n"
+    + "THPT02,Trường THPT Nguyễn Thị Minh Khai,Trường THPT,thpt02@hkpd.vn,02839301416,Cô Trần Thị B,275 Điện Biên Phủ Q.3,\n"
+    + "PGD01,Phòng GD&ĐT Quận 1,Phòng GD&ĐT,pgd01@hkpd.vn,02838223456,Thầy Lê Văn C,12 Lê Duẩn Quận 1,\n";
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'Mau_Danh_Sach_Don_Vi_HKPD.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Đã tải xuống file mẫu CSV (mở trực tiếp bằng Excel)!', 'ok');
+}
+
+function openImportDVModal() {
+  S.importDVList = [];
+  document.getElementById('import-dv-paste').value = '';
+  document.getElementById('import-dv-file').value = '';
+  switchImportTab('paste');
+  renderImportDVPreview([]);
+  document.getElementById('mo-import-dv').classList.add('on');
+}
+
+function switchImportTab(tab) {
+  var isPaste = tab === 'paste';
+  document.getElementById('tab-import-paste').style.display = isPaste ? 'block' : 'none';
+  document.getElementById('tab-import-file').style.display = isPaste ? 'none' : 'block';
+  document.getElementById('btn-tab-paste').style.background = isPaste ? 'var(--pri)' : 'transparent';
+  document.getElementById('btn-tab-paste').style.color = isPaste ? '#fff' : 'inherit';
+  document.getElementById('btn-tab-file').style.background = !isPaste ? 'var(--pri)' : 'transparent';
+  document.getElementById('btn-tab-file').style.color = !isPaste ? '#fff' : 'inherit';
+}
+
+function handleDVPasteInput(raw) {
+  if (raw === undefined) {
+    var el = document.getElementById('import-dv-paste');
+    raw = el ? el.value : '';
+  }
+  var lines = String(raw || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return !!l; });
+  var list = [];
+  lines.forEach(function(line, idx) {
+    var cols = line.indexOf('\t') !== -1 ? line.split('\t') : line.split(',');
+    cols = cols.map(function(c){ return c.replace(/^["']|["']$/g, '').trim(); });
+    if (idx === 0 && (cols[0] || '').toLowerCase().includes('mã') && (cols[1] || '').toLowerCase().includes('tên')) {
+      return;
+    }
+    if (cols.length >= 2) {
+      list.push({
+        maDonVi: (cols[0] || '').toUpperCase(),
+        tenDonVi: cols[1] || '',
+        loaiDonVi: cols[2] || 'Trường THPT',
+        email: cols[3] || '',
+        dienThoai: cols[4] || '',
+        nguoiLienHe: cols[5] || '',
+        diaChi: cols[6] || '',
+        matKhau: cols[7] || ''
+      });
+    }
+  });
+  renderImportDVPreview(list);
+}
+
+function handleDVFileSelect(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    handleDVPasteInput(e.target.result);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function renderImportDVPreview(list) {
+  S.importDVList = list;
+  var tb = document.getElementById('tb-import-dv-preview');
+  var stats = document.getElementById('import-dv-stats');
+  var btn = document.getElementById('btn-do-import-dv');
+
+  if (!list.length) {
+    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Chưa dán hoặc chọn tệp dữ liệu</td></tr>';
+    stats.textContent = 'Chưa có dữ liệu';
+    btn.disabled = true;
+    btn.textContent = '🚀 Tiến hành nhập toàn bộ (0 đơn vị)';
+    return;
+  }
+
+  var validCount = 0;
+  var rowsHtml = list.slice(0, 100).map(function(item, idx) {
+    var isValid = item.maDonVi && item.tenDonVi && item.maDonVi !== 'ADMIN';
+    if (isValid) validCount++;
+    return '<tr>'
+      + '<td>' + (idx + 1) + '</td>'
+      + '<td><b>' + esc(item.maDonVi || '--') + '</b></td>'
+      + '<td>' + esc(item.tenDonVi || '--') + '</td>'
+      + '<td>' + esc(item.loaiDonVi || 'Trường') + '</td>'
+      + '<td>' + esc(item.email || '--') + '</td>'
+      + '<td>' + esc(item.dienThoai || '--') + '</td>'
+      + '<td>' + esc(item.nguoiLienHe || '--') + '</td>'
+      + '<td><small>' + esc(item.matKhau ? 'Cụ thể' : 'Tự đặt mặc định') + '</small></td>'
+      + '<td>' + (isValid ? '<span class="bdg b-ok">Hợp lệ</span>' : '<span class="bdg b-err">Thiếu Mã/Tên</span>') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  if (list.length > 100) {
+    rowsHtml += '<tr><td colspan="9" style="text-align:center;color:var(--muted);font-style:italic;">... và ' + (list.length - 100) + ' đơn vị khác</td></tr>';
+  }
+
+  tb.innerHTML = rowsHtml;
+  stats.textContent = 'Đã nhận diện: ' + validCount + '/' + list.length + ' đơn vị hợp lệ';
+  btn.disabled = validCount === 0;
+  btn.textContent = '🚀 Tiến hành nhập toàn bộ (' + validCount + ' đơn vị)';
+}
+
+function submitImportDV() {
+  var validList = (S.importDVList || []).filter(function(x){ return x.maDonVi && x.tenDonVi && x.maDonVi !== 'ADMIN'; });
+  if (!validList.length) { toast('Không có đơn vị nào hợp lệ!', 'wn'); return; }
+  loading(true);
+  GAuth('importNhieuDonVi', [validList], function(res) {
+    loading(false);
+    toast(res.msg, res.ok ? 'ok' : 'err');
+    if (res.ok) {
+      closeModal('mo-import-dv');
+      loadAdmDV();
+    }
+  });
+}
+
+// =========================================================
+// ADMIN: QUẢN LÝ MÔN THI & BIỂU MẪU (TÙY BIẾN NỘI DUNG & LƯU TOÀN BỘ)
+// =========================================================
+function loadAdmMon() {
+  loading(true);
+  G('layDanhSachMon', [], function(res){
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    S.mons = res.data || [];
+    renderAdmMon(S.mons);
+  });
+}
+
+function renderAdmMon(ds) {
+  var tb = document.getElementById('tb-mon');
+  tb.innerHTML = ds.map(function(m, i){
+    var isOk = m.trangThai === 'HoatDong' || !m.trangThai;
+    var flds = m.fields || [];
+    var ndFld = flds.find(function(f){ return f.key === 'noiDung'; });
+    var opts = ndFld && Array.isArray(ndFld.options) ? ndFld.options : [];
+    
+    var fldTags = opts.slice(0, 5).map(function(o){
+      var txt = typeof o === 'string' ? o : (o.label || o.value || '');
+      return '<span class="bdg b-info" style="margin:2px 3px 2px 0;font-size:11px;">' + esc(txt) + '</span>';
+    }).join('');
+    if (opts.length > 5) {
+      fldTags += '<span class="bdg b-sec" style="font-size:11px;">+' + (opts.length - 5) + '</span>';
+    }
+
+    return '<tr>'
+      + '<td>' + (i + 1) + '</td>'
+      + '<td><b>' + esc(m.icon || '🏅') + ' ' + esc(m.ten) + '</b><br><small style="color:var(--muted);">' + esc(m.id) + '</small></td>'
+      + '<td>' + esc(m.nhom) + '</td>'
+      + '<td style="max-width:320px;">'
+      + '  <div>' + (fldTags || '<i style="color:var(--muted);">Chưa có nội dung</i>') + '</div>'
+      + '  <button type="button" class="btn btn-o btn-sm" style="margin-top:6px;padding:3px 8px;font-size:11.5px;" onclick="openEditSportModal(\'' + m.id + '\')">⚙️ Sửa nội dung &amp; trường (' + opts.length + ')</button>'
+      + '</td>'
+      + '<td><input type="number" id="gh-' + m.rowIndex + '" data-mon-id="' + m.id + '" value="' + m.gioiHan + '" min="1" max="999" class="fc fc-sm" style="width:65px;text-align:center;"></td>'
+      + '<td><select id="st-' + m.rowIndex + '" data-mon-id="' + m.id + '" class="fc fc-sm" style="width:110px;"><option value="HoatDong" ' + (isOk?'selected':'') + '>Hoạt động</option><option value="Tat" ' + (!isOk?'selected':'') + '>Tạm khóa</option></select></td>'
+      + '<td style="display:flex;gap:4px;">'
+      + '  <button class="btn btn-p btn-sm" onclick="saveAllMon()" title="Lưu môn này và toàn bộ danh mục">💾 Lưu toàn bộ</button>'
+      + '  <button class="btn btn-sm ' + (isOk?'btn-err':'btn-ok') + '" onclick="toggleMonStatus(' + m.rowIndex + ',\'' + (isOk?'Tat':'HoatDong') + '\')" title="' + (isOk?'Tạm khóa':'Mở lại') + '">' + (isOk?'🔒':'🔓') + '</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+function saveGioiHan(rowIndex) {
+  saveAllMon();
+}
+
+function saveAllMon() {
+  if (!S.mons || !S.mons.length) return;
+  S.mons.forEach(function(m) {
+    var ghEl = document.getElementById('gh-' + m.rowIndex) || document.querySelector('input[data-mon-id="' + m.id + '"]');
+    if (ghEl) {
+      var gh = parseInt(ghEl.value, 10);
+      if (!isNaN(gh) && gh >= 1) m.gioiHan = gh;
+    }
+    var stEl = document.getElementById('st-' + m.rowIndex) || document.querySelector('select[data-mon-id="' + m.id + '"]');
+    if (stEl) m.trangThai = stEl.value;
+  });
+
+  loading(true);
+  GAuth('luuToanBoMon', [S.mons], function(res) {
+    loading(false);
+    toast(res.msg, res.ok ? 'ok' : 'err');
+    if (res.ok) {
+      loadAdmMon();
+      renderSportPicker(S.mons);
+    }
+  });
+}
+
+function toggleMonStatus(rowIndex, trangThai) {
+  loading(true);
+  GAuth('capNhatTrangThaiMon', [rowIndex, trangThai], function(res){
+    loading(false);
+    toast(res.msg, res.ok?'ok':'err');
+    if (res.ok) loadAdmMon();
+  });
+}
+
+// CẤU HÌNH BIỂU MẪU VÀ NỘI DUNG NHỎ TỪNG MÔN
+S.editingSportId = null;
+S.editingSportFields = [];
+
+function openEditSportModal(sportId) {
+  var mon = S.mons.find(function(m){ return m.id === sportId; });
+  if (!mon) return;
+  S.editingSportId = sportId;
+  S.editingSportFields = JSON.parse(JSON.stringify(mon.fields || []));
+
+  document.getElementById('es-sport-id').value = mon.id;
+  document.getElementById('es-sport-name').textContent = (mon.icon || '🏅') + ' ' + mon.ten;
+  document.getElementById('es-txt-id').textContent = mon.id;
+  document.getElementById('es-txt-nhom').textContent = mon.nhom;
+  document.getElementById('es-txt-gioihan').value = mon.gioiHan;
+  document.getElementById('es-txt-trangthai').value = mon.trangThai || 'HoatDong';
+  document.getElementById('es-new-noidung').value = '';
+
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  if (!ndFld) {
+    ndFld = { key: 'noiDung', label: 'Nội dung thi đấu', type: 'checkboxes', required: true, options: [] };
+    S.editingSportFields.unshift(ndFld);
+  }
+  document.getElementById('es-noidung-type').value = ndFld.type || 'checkboxes';
+
+  renderSportNoiDungList();
+  renderSportOtherFields();
+  document.getElementById('mo-edit-sport').classList.add('on');
+}
+
+function renderSportNoiDungList() {
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  var opts = ndFld && Array.isArray(ndFld.options) ? ndFld.options : [];
+  var listEl = document.getElementById('es-noidung-list');
+
+  if (!opts.length) {
+    listEl.innerHTML = '<span style="color:var(--muted);font-size:12px;padding:8px;">Chưa có nội dung thi đấu nào. Vui lòng thêm ở trên!</span>';
+    return;
+  }
+
+  listEl.innerHTML = opts.map(function(opt, idx) {
+    var val = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+    return '<div style="display:inline-flex;align-items:center;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 8px;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">'
+      + '<input value="' + esc(val) + '" onchange="updateSportNoiDungItem(' + idx + ', this.value)" style="border:none;outline:none;font-size:12px;font-weight:600;color:#1e293b;width:' + Math.min(220, Math.max(90, val.length * 10)) + 'px;" title="Bấm để chỉnh sửa tên nội dung">'
+      + '<button type="button" onclick="removeSportNoiDungItem(' + idx + ')" style="border:none;background:transparent;cursor:pointer;color:#ef4444;font-size:13px;padding:0 2px;" title="Xóa nội dung này">✕</button>'
+      + '</div>';
+  }).join('');
+}
+
+function addSportNoiDungItem() {
+  var inp = document.getElementById('es-new-noidung');
+  var txt = (inp.value || '').trim();
+  if (!txt) { toast('Vui lòng nhập tên nội dung mới!', 'wn'); return; }
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  if (!ndFld) return;
+  if (!Array.isArray(ndFld.options)) ndFld.options = [];
+  if (ndFld.options.includes(txt)) { toast('Nội dung này đã có!', 'wn'); return; }
+  ndFld.options.push(txt);
+  inp.value = '';
+  renderSportNoiDungList();
+  toast('Đã thêm nội dung: ' + txt, 'ok');
+}
+
+function removeSportNoiDungItem(idx) {
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  if (!ndFld || !Array.isArray(ndFld.options)) return;
+  ndFld.options.splice(idx, 1);
+  renderSportNoiDungList();
+}
+
+function updateSportNoiDungItem(idx, val) {
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  if (!ndFld || !Array.isArray(ndFld.options)) return;
+  var txt = String(val || '').trim();
+  if (txt) ndFld.options[idx] = txt;
+  renderSportNoiDungList();
+}
+
+function renderSportOtherFields() {
+  var others = S.editingSportFields.filter(function(f){ return f.key !== 'noiDung'; });
+  var el = document.getElementById('es-other-fields');
+  if (!others.length) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:12px;">Môn này không có trường thông tin phụ nào khác.</span>';
+    return;
+  }
+  el.innerHTML = others.map(function(f) {
+    var optStr = Array.isArray(f.options) ? f.options.join(', ') : (f.placeholder || '');
+    return '<div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;">'
+      + '<div>'
+      + '  <b>' + esc(f.label) + '</b> <code>(' + esc(f.key) + ')</code> '
+      + (f.required ? '<span class="bdg b-warn" style="font-size:10px;">Bắt buộc</span>' : '')
+      + (optStr ? '<br><small style="color:var(--muted);">' + esc(optStr) + '</small>' : '')
+      + '</div>'
+      + '<span class="bdg b-sec">' + esc(f.type) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function applyAndSaveAllMon() {
+  var mon = S.mons.find(function(m){ return m.id === S.editingSportId; });
+  if (!mon) return;
+
+  var ndFld = S.editingSportFields.find(function(f){ return f.key === 'noiDung'; });
+  if (ndFld) {
+    ndFld.type = document.getElementById('es-noidung-type').value;
+  }
+
+  mon.fields = S.editingSportFields;
+  var gh = parseInt(document.getElementById('es-txt-gioihan').value, 10);
+  if (!isNaN(gh) && gh >= 1) mon.gioiHan = gh;
+  mon.trangThai = document.getElementById('es-txt-trangthai').value;
+
+  closeModal('mo-edit-sport');
+  saveAllMon();
+}
+
+// =========================================================
+// ADMIN: THỐNG KÊ & XUẤT BÁO CÁO
+// =========================================================
+function loadTK() {
+  loading(true);
+  GAuth('layThongKe', [], function(res){
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    var d = res.data;
+    document.getElementById('s-tong').textContent = d.tong;
+    document.getElementById('s-cho').textContent  = d.choDuyet;
+    document.getElementById('s-ok').textContent   = d.daDuyet;
+    document.getElementById('s-err').textContent  = d.tuChoi;
+    renderDashChart(d.theoMon);
+    renderTKMon(d.theoMon);
+    renderTKDonVi(d.theoDonVi);
+  });
+}
+
+function renderTKMon(theoMon) {
+  var tb = document.getElementById('tb-tk-mon');
+  if (!theoMon) { tb.innerHTML=''; return; }
+  tb.innerHTML = Object.entries(theoMon).map(function(e){
+    var m=e[1];
+    var pct = m.gioiHan > 0 ? Math.min(100, m.soLuong/m.gioiHan*100) : 0;
+    var cls = pct>=100?'pe':pct>=70?'pw':'';
+    return '<tr>'
+      + '<td><b>'+esc(m.icon||'🏅')+' '+esc(m.ten)+'</b></td>'
+      + '<td>'+esc(m.nhom)+'</td>'
+      + '<td><b>'+m.soLuong+'</b></td>'
+      + '<td>'+m.gioiHan+'</td>'
+      + '<td style="min-width:160px;"><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="flex:1;"><div class="prog-b '+cls+'" style="width:'+pct+'%"></div></div><span style="font-size:11px;width:34px;text-align:right;">'+Math.round(pct)+'%</span></div></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function renderTKDonVi(theoDonVi) {
+  var tb = document.getElementById('tb-tk-dv');
+  if (!theoDonVi || !Object.keys(theoDonVi).length) {
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Chưa có dữ liệu</td></tr>'; return;
+  }
+  var arr = Object.entries(theoDonVi).sort(function(a,b){return b[1].tong - a[1].tong;});
+  tb.innerHTML = arr.map(function(e,i){
+    var ma=e[0], dv=e[1];
+    return '<tr>'
+      + '<td>'+(i+1)+'</td>'
+      + '<td><b>'+esc(dv.ten)+'</b> <small style="color:var(--muted);">'+esc(ma)+'</small></td>'
+      + '<td><b>'+dv.tong+'</b></td>'
+      + '<td style="color:var(--ok);">'+dv.daDuyet+'</td>'
+      + '<td style="color:var(--warn);">'+dv.choDuyet+'</td>'
+      + '<td style="color:var(--err);">'+dv.tuChoi+'</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function xuatBaoCao() {
+  var maMon = document.getElementById('rpt-mon') ? document.getElementById('rpt-mon').value : '';
+  loading(true);
+  GAuth('taoSheetBaoCao', ['ALL', '', maMon], function(res){
+    loading(false);
+    toast(res.msg, res.ok?'ok':'err');
+    if (res.ok && res.url) window.open(res.url, '_blank');
+  });
+}
+
+function xuatCSV(ds, prefix) {
+  if (!ds || !ds.length) { toast('Không có dữ liệu để xuất!','wn'); return; }
+  // Nếu tất cả dòng cùng 1 môn -> bung thành các cột riêng của môn đó!
+  var uniqueMons = Array.from(new Set(ds.map(function(v){ return v.maMon; })));
+  var monDef = uniqueMons.length === 1 ? S.mons.find(function(m){ return m.id === uniqueMons[0]; }) : null;
+
+  var headers = ['STT','Mã ĐV','Đơn vị','Họ tên','Ngày sinh','Giới tính','Lớp','Số CCCD','Mã học sinh','Ảnh thẻ','Môn thi'];
+  if (monDef && monDef.fields) {
+    monDef.fields.forEach(function(f){ headers.push(f.label); });
+  } else {
+    headers.push('Nội dung', 'Thông tin chuyên môn');
+  }
+  headers.push('Trạng thái','Ghi chú','Ngày ĐK');
+
+  var ttMap = { ChoDuyet:'Chờ duyệt', DaDuyet:'Đã duyệt', TuChoi:'Từ chối' };
+  var rows = ds.map(function(v, i){
+    var r = [i+1, v.maDonVi, v.tenDonVi, v.hoTen, v.ngaySinh, v.gioiTinh, v.lop, v.cccd, v.maHocSinh, v.coAnh?'Đã có':'Chưa có', v.tenMon];
+    if (monDef && monDef.fields) {
+      monDef.fields.forEach(function(f){
+        var val = v.chiTiet ? v.chiTiet[f.key] : '';
+        r.push(Array.isArray(val) ? val.join(', ') : (val || ''));
+      });
+    } else {
+      r.push(v.noiDung, v.chiTietHienThi);
+    }
+    r.push(ttMap[v.trangThai]||v.trangThai, v.ghiChu, v.thoiGianDK);
+    return r;
+  });
+
+  var csv = [headers].concat(rows).map(function(r){
+    return r.map(function(c){ return '"' + String(c===null||c===undefined?'':c).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (prefix||'HKPD') + (monDef ? '_' + monDef.id : '') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Đã tải file CSV!','ok');
+}
+
+// =========================================================
+// ADMIN: CÀI ĐẶT
+// =========================================================
+function loadCD() {
+  GAuth('getDatabaseUrl', [], function(res){
+    if(res && res.ok) document.getElementById('db-url').href = res.url;
+  });
+  loading(true);
+  GAuth('layCaiDat', [], function(res){
+    loading(false);
+    if (!res.ok) { toast(res.msg,'err'); return; }
+    S.cdList = res.data || [];
+    renderCD(S.cdList);
+  });
+}
+
+function renderCD(ds) {
+  var c = document.getElementById('cd-list');
+  if (!ds.length) { c.innerHTML='<p class="empty">Không có cài đặt</p>'; return; }
+  c.innerHTML = '<div style="display:grid;gap:12px;">'
+    + ds.map(function(cd){
+        return '<div style="display:flex;align-items:center;gap:12px;">'
+          + '<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(cd.khoa)+'</div>'
+          + '<div style="font-size:12px;color:var(--muted);">'+esc(cd.moTa)+'</div></div>'
+          + '<input id="cd-'+cd.rowIndex+'" style="width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;" value="'+esc(cd.giaTri)+'">'
+          + '</div>';
+      }).join('')
+    + '</div>';
+}
+
+function saveCaiDat() {
+  if (!S.cdList.length) return;
+  var tasks = S.cdList.length;
+  var done = 0;
+  loading(true);
+  S.cdList.forEach(function(cd){
+    var val = document.getElementById('cd-'+cd.rowIndex).value;
+    GAuth('capNhatCaiDat', [cd.rowIndex, val], function(){
+      done++;
+      if (done===tasks) { loading(false); toast('Lưu cài đặt thành công!','ok'); }
+    });
+  });
+}
+
+function initDb() {
+  askConfirm('Khởi tạo / kiểm tra cấu trúc hệ thống?', function(){
+    loading(true);
+    GAuth('khoiTaoHeThong', [], function(res){
+      loading(false);
+      toast(res.msg, res.ok?'ok':'err');
+    });
+  });
+}
+
+// =========================================================
+// XÓA / SỬA VĐV (BAO GỒM FORM ĐỘNG)
+// =========================================================
+function confirmDelete(rowIndex, maDonVi, vdvId) {
+  askConfirm('Xóa đăng ký này?', function(){
+    loading(true);
+    GAuth('xoaVDV', [rowIndex, vdvId], function(res){
+      loading(false);
+      toast(res.msg, res.ok?'ok':'err');
+      if (res.ok) {
+        if (maDonVi==='ADMIN') loadAdmVDV();
+        else loadMyVDV();
+      }
+    });
+  });
+}
+
+function openEdit(v) {
+  document.getElementById('edit-ri').value = v.rowIndex;
+  document.getElementById('edit-vdv-id').value = v.id || '';
+  document.getElementById('edit-ma-mon').value = v.maMon || '';
+  document.getElementById('ev-ht').value  = v.hoTen || '';
+  var ns = v.ngaySinh || '';
+  if (ns && ns.includes('/')) {
+    var pts = ns.split('/');
+    ns = pts[2]+'-'+pts[1]+'-'+pts[0];
+  }
+  document.getElementById('ev-ns').value   = ns;
+  document.getElementById('ev-gt').value   = v.gioiTinh || 'Nam';
+  document.getElementById('ev-lop').value  = v.lop || '';
+  document.getElementById('ev-cccd').value = v.cccd || '';
+  document.getElementById('ev-mhs').value  = v.maHocSinh || '';
+  document.getElementById('ev-gc').value   = v.ghiChu || '';
+  document.getElementById('ev-photo').value = '';
+  document.getElementById('ev-photo-changed').value = '0';
+
+  var cached = S.photoCache[v.id] || '';
+  setPhotoPreview('ev-photo-prev', 'ev-photo-data', cached, cached);
+  if (v.coAnh && !cached) {
+    hydratePhotos([v], function() {
+      var u = S.photoCache[v.id];
+      if (u && document.getElementById('edit-vdv-id').value === v.id) {
+        setPhotoPreview('ev-photo-prev', 'ev-photo-data', u, u);
+      }
+    });
+  }
+
+  var mon = S.mons.find(function(m){ return m.id === v.maMon; });
+  document.getElementById('edit-modal-title').textContent = '✏️ Sửa VĐV — ' + (mon ? (mon.icon + ' ' + mon.ten) : v.tenMon);
+  document.getElementById('edit-dyn-title').textContent = (mon ? (mon.icon + ' ') : '🏅 ') + 'Thông tin chuyên môn — ' + (v.tenMon || '');
+  renderDynamicFields(document.getElementById('edit-dyn-fields'), mon ? mon.fields : [], 'edit', v.chiTiet || {});
+  document.getElementById('mo-edit-vdv').classList.add('on');
+}
+
+function saveEditVDV() {
+  var ri    = parseInt(document.getElementById('edit-ri').value, 10);
+  var vdvId = document.getElementById('edit-vdv-id').value;
+  var maMon = document.getElementById('edit-ma-mon').value;
+  var ht    = document.getElementById('ev-ht').value.trim();
+  var ns    = document.getElementById('ev-ns').value;
+  var gt    = document.getElementById('ev-gt').value;
+  var lop   = document.getElementById('ev-lop').value.trim();
+  var cccd  = document.getElementById('ev-cccd').value.trim().replace(/\s+/g, '');
+  var mhs   = document.getElementById('ev-mhs').value.trim();
+  var photoChanged = document.getElementById('ev-photo-changed').value === '1';
+  var photo = document.getElementById('ev-photo-data').value;
+  var gc    = document.getElementById('ev-gc').value.trim();
+
+  if (!ht||!ns||!gt) { toast('Điền đầy đủ họ tên, ngày sinh, giới tính!','wn'); return; }
+  if (!/^(\d{9}|\d{12})$/.test(cccd)) { toast('Số CCCD / ĐDCN phải gồm 9 hoặc 12 chữ số!','wn'); return; }
+  if (!mhs) { toast('Nhập Mã học sinh!','wn'); return; }
+
+  var mon = S.mons.find(function(m){ return m.id === maMon; });
+  var chiTiet = readDynamicFields(document.getElementById('edit-dyn-fields'), mon ? mon.fields : [], 'edit', false);
+  if (chiTiet === null) return;
+
+  var payload = {
+    hoTen: ht, ngaySinh: ns, gioiTinh: gt, lop: lop,
+    cccd: cccd, maHocSinh: mhs, ghiChu: gc, chiTiet: chiTiet
+  };
+  if (photoChanged) payload.anhThe = photo;
+
+  loading(true);
+  GAuth('suaVDV', [ri, payload, vdvId], function(res){
+    loading(false);
+    toast(res.msg, res.ok?'ok':'err');
+    if (res.ok) {
+      if (photoChanged) {
+        if (photo) S.photoCache[vdvId] = photo;
+        else delete S.photoCache[vdvId];
+      }
+      closeModal('mo-edit-vdv');
+      loadMyVDV();
+    }
+  });
+}
+
+// =========================================================
+// THẺ THI ĐẤU (TỪNG VĐV & TỪNG ĐƠN VỊ + CỬA SỔ IN ĐỘC LẬP)
+// =========================================================
+function buildAthleteCardHtml(v) {
+  var cached = S.photoCache[v.id];
+  var photoInner = cached
+    ? '<img src="'+cached+'" alt="Ảnh thẻ">'
+    : (v.coAnh ? '<span>⏳</span>' : '<span>🧑</span>');
+  var shortCode = (v.id || '').replace('VDV_', '').slice(0, 14);
+  return '<div class="id-card" data-vdv-id="'+esc(v.id)+'">'
+    + '<div class="id-card-head">'
+    + '  <div>'
+    + '    <div class="org">HỘI KHỎE PHÙ ĐỔNG CẤP TỈNH</div>'
+    + '    <div class="ttl">🪪 THẺ THI ĐẤU VĐV</div>'
+    + '  </div>'
+    + '  <div style="font-size:22px;">'+esc(getSportIcon(v.maMon))+'</div>'
+    + '</div>'
+    + '<div class="id-card-body">'
+    + '  <div class="id-card-left">'
+    + '    <div class="id-card-photo" data-photo-id="'+esc(v.id)+'">'+photoInner+'</div>'
+    + '    <div>'+bdg(v.trangThai)+'</div>'
+    + '    <div class="id-card-code">'+esc(shortCode)+'</div>'
+    + '  </div>'
+    + '  <div class="id-card-right">'
+    + '    <div class="id-card-name">'+esc(v.hoTen)+'</div>'
+    + '    <div class="id-card-line">🏫 Đơn vị: <b>'+esc(v.tenDonVi)+'</b></div>'
+    + '    <div class="id-card-line">🎂 NS: <b>'+esc(v.ngaySinh)+'</b> • GT: <b>'+esc(v.gioiTinh)+'</b>'+(v.lop?' • Lớp: <b>'+esc(v.lop)+'</b>':'')+'</div>'
+    + '    <div class="id-card-line">🆔 CCCD: <b>'+esc(v.cccd||'-')+'</b></div>'
+    + '    <div class="id-card-line">🎓 Mã HS: <b>'+esc(v.maHocSinh||'-')+'</b></div>'
+    + '    <div class="id-card-sport">'
+    + '      <div><b>Môn: '+esc(v.tenMon)+'</b></div>'
+    + (v.chiTietHienThi ? '<div style="margin-top:2px;color:#334155;">'+esc(v.chiTietHienThi)+'</div>' : '')
+    + '    </div>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="id-card-foot">'
+    + '  <span>ĐK: '+esc(v.thoiGianDK||'')+'</span>'
+    + '  <b>BAN TỔ CHỨC HKPĐ</b>'
+    + '</div>'
+    + '</div>';
+}
+
+function openCardModal(list, title) {
+  var cards = (list || []).filter(Boolean);
+  if (!cards.length) { toast('Không có VĐV nào để tạo thẻ!', 'wn'); return; }
+  document.getElementById('mo-cards-title').textContent = title || ('🪪 Thẻ thi đấu (' + cards.length + ' VĐV)');
+  document.getElementById('mo-cards-grid').innerHTML = cards.map(buildAthleteCardHtml).join('');
+  document.getElementById('mo-cards').classList.add('on');
+  hydratePhotos(cards);
+}
+
+function openFilteredCards(mode) {
+  if (mode === 'adm') {
+    var checkedIds = Array.from(document.querySelectorAll('#tb-adm-vdv .chk-row:checked')).map(function(c){ return c.value; });
+    var src = checkedIds.length
+      ? S.vdvFiltered.filter(function(v){ return checkedIds.indexOf(v.id) !== -1; })
+      : S.vdvFiltered.filter(function(v){ return v.trangThai !== 'TuChoi'; });
+    openCardModal(src, '🪪 Thẻ thi đấu (' + src.length + ' VĐV)');
+  } else {
+    var ds = (S.vdvFiltered || []).filter(function(v){ return v.trangThai !== 'TuChoi'; });
+    openCardModal(ds, '🪪 Thẻ thi đấu — ' + (S.user ? S.user.tenDonVi : '') + ' (' + ds.length + ' VĐV)');
+  }
+}
+
+function loadCardsPage() {
+  if (!S.user) return;
+  var cfDv = document.getElementById('cf-dv');
+  if (cfDv) cfDv.style.display = S.user.isAdmin ? 'block' : 'none';
+  loading(true);
+  GAuth('layDanhSachVDV', [null], function(res){
+    loading(false);
+    if (!res.ok) { toast(res.msg, 'err'); return; }
+    S.cardsAll = res.data || [];
+    S.cardsPage = 1;
+    if (S.user.isAdmin && cfDv) {
+      var dvs = {};
+      S.cardsAll.forEach(function(v){ dvs[v.maDonVi] = v.tenDonVi; });
+      var prev = cfDv.value;
+      cfDv.innerHTML = '<option value="">Tất cả đơn vị</option>';
+      Object.entries(dvs).forEach(function(e){ cfDv.innerHTML += '<option value="'+esc(e[0])+'">'+esc(e[1])+'</option>'; });
+      if (prev && dvs[prev]) cfDv.value = prev;
+    }
+    filterCards(true);
+  });
+}
+
+function filterCards(keepPage) {
+  if (!keepPage) S.cardsPage = 1;
+  var kw  = (document.getElementById('cf-kw').value || '').toLowerCase();
+  var dv  = document.getElementById('cf-dv') ? document.getElementById('cf-dv').value : '';
+  var mon = document.getElementById('cf-mon').value;
+  var tt  = document.getElementById('cf-tt').value;
+  S.cardsFiltered = (S.cardsAll || []).filter(function(v){
+    if (tt === '' && v.trangThai === 'TuChoi') return false;
+    if (tt && tt !== 'ALL_INC' && v.trangThai !== tt) return false;
+    if (dv && v.maDonVi !== dv) return false;
+    if (mon && v.maMon !== mon) return false;
+    if (kw && !String(v.hoTen).toLowerCase().includes(kw) && !String(v.cccd).toLowerCase().includes(kw) &&
+        !String(v.maHocSinh).toLowerCase().includes(kw) && !String(v.tenDonVi).toLowerCase().includes(kw) &&
+        !String(v.lop).toLowerCase().includes(kw)) return false;
+    return true;
+  });
+  renderCardsGrid();
+}
+
+function renderCardsGrid() {
+  var ds = S.cardsFiltered || [];
+  var grid = document.getElementById('pg-cards-grid');
+  var em = document.getElementById('cards-empty');
+  document.getElementById('cards-count').textContent = ds.length + ' thẻ';
+  if (!ds.length) { grid.innerHTML = ''; em.style.display = 'block'; renderPager('cards-pager',1,0,'setCardsPage'); return; }
+  em.style.display = 'none';
+  var start = (S.cardsPage - 1) * S.PAGE_SIZE;
+  var pageItems = ds.slice(start, start + S.PAGE_SIZE);
+  grid.innerHTML = pageItems.map(buildAthleteCardHtml).join('');
+  renderPager('cards-pager', S.cardsPage, ds.length, 'setCardsPage');
+  hydratePhotos(pageItems);
+}
+
+function printCardsView(isModal) {
+  if (isModal) document.body.classList.add('print-modal-cards');
+  else document.body.classList.remove('print-modal-cards');
+  window.print();
+  setTimeout(function(){ document.body.classList.remove('print-modal-cards'); }, 500);
+}
+
+function openStandalonePrintWindow(isModal) {
+  var srcGrid = document.getElementById(isModal ? 'mo-cards-grid' : 'pg-cards-grid');
+  var cards = srcGrid ? srcGrid.querySelectorAll('.id-card') : [];
+  if (!cards || cards.length === 0) { toast('Không có thẻ nào để in!', 'wn'); return; }
+  var w = window.open('', '_blank', 'width=980,height=800');
+  if (!w) { toast('Trình duyệt đang chặn cửa sổ bật lên, dùng In trực tiếp thay thế!', 'wn'); return; }
+  
+  var styles = document.querySelector('style').innerHTML;
+  var totalCards = cards.length;
+  var totalPages = Math.ceil(totalCards / 4);
+  
+  // Chia thẻ thành các trang A4, mỗi trang đúng 4 thẻ (2 cột x 2 dòng)
+  var sheetsHtml = '';
+  for (var i = 0; i < totalCards; i += 4) {
+    sheetsHtml += '<div class="a4-sheet">';
+    for (var j = 0; j < 4; j++) {
+      var idx = i + j;
+      if (idx < totalCards) {
+        sheetsHtml += '<div class="a4-card-wrapper">' + cards[idx].outerHTML + '</div>';
+      } else {
+        sheetsHtml += '<div class="a4-card-wrapper" style="visibility:hidden;border:none;"></div>';
+      }
+    }
+    sheetsHtml += '</div>';
+  }
+
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>In Thẻ Thi Đấu HKPĐ (Khổ A4)</title>'
+    + '<style>' + styles
+    + ' @page { size: A4 portrait; margin: 8mm; }'
+    + ' body { background:#f1f5f9; padding:16px; margin:0; font-family:"Segoe UI",system-ui,sans-serif; }'
+    + ' @media print {'
+    + '   body { background:#fff !important; padding:0 !important; margin:0 !important; }'
+    + '   .no-print-win { display:none !important; }'
+    + '   .a4-sheet { margin:0 auto !important; box-shadow:none !important; }'
+    + '   .id-card { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }'
+    + ' }'
+    + '</style>'
+    + '</head><body>'
+    + '<div class="no-print-win" style="max-width:194mm;margin:0 auto 16px auto;padding:12px 18px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;">'
+    + '  <div>'
+    + '    <div style="font-size:16px;font-weight:700;color:#0f172a;">📄 Bản xem trước in Thẻ thi đấu HKPĐ (Khổ A4)</div>'
+    + '    <div style="font-size:13px;color:#64748b;margin-top:2px;">Tổng cộng <b>' + totalCards + '</b> thẻ (' + totalPages + ' trang A4, đúng 4 thẻ/trang)</div>'
+    + '  </div>'
+    + '  <div style="display:flex;gap:8px;">'
+    + '    <button class="btn btn-p" onclick="window.print()" style="font-size:14px;padding:8px 18px;cursor:pointer;">🖨️ In ngay / Lưu PDF</button>'
+    + '  </div>'
+    + '</div>'
+    + sheetsHtml
+    + '</body></html>');
+  w.document.close();
+}
+
+// =========================================================
+// TIỆN ÍCH UI
+// =========================================================
+function toast(msg, type) {
+  type = type || 'inf';
+  var c = document.getElementById('toasts');
+  var t = document.createElement('div');
+  t.className = 'toast ' + type;
+  var icons = {ok:'✅', err:'❌', wn:'⚠️', inf:'ℹ️'};
+  var s1 = document.createElement('span'); s1.textContent = icons[type] || 'ℹ️';
+  var s2 = document.createElement('span'); s2.textContent = msg;
+  t.appendChild(s1); t.appendChild(s2);
+  c.appendChild(t);
+  setTimeout(function(){ t.style.animation='toastOut .3s forwards'; setTimeout(function(){t.remove();},300); }, 3800);
+}
+
+function loading(show) {
+  document.getElementById('overlay').style.display = show ? 'flex':'none';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('on');
+}
+
+function askConfirm(msg, cb) {
+  document.getElementById('confirm-txt').textContent = msg;
+  document.getElementById('mo-confirm').classList.add('on');
+  document.getElementById('confirm-ok').onclick = function(){
+    closeModal('mo-confirm');
+    cb();
+  };
+}
+
+function bdg(tt) {
+  var map = {
+    ChoDuyet:'<span class="bdg b-warn">⏳ Chờ duyệt</span>',
+    DaDuyet: '<span class="bdg b-ok">✅ Đã duyệt</span>',
+    TuChoi:  '<span class="bdg b-err">❌ Từ chối</span>'
+  };
+  return map[tt] || '<span class="bdg b-sec">'+esc(tt)+'</span>';
+}
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// =========================================================
+// GỌI GAS BACKEND
+// =========================================================
+function G(fn, args, cb) {
+  var runner = google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.authError) {
+        loading(false);
+        toast(res.msg || 'Phiên đăng nhập đã hết hạn!', 'wn');
+        logout();
+        return;
+      }
+      if (cb) cb(res);
+    })
+    .withFailureHandler(function(err){
+      loading(false);
+      toast('Lỗi: '+(err.message||String(err)), 'err');
+      console.error(fn, err);
+    });
+  runner[fn].apply(runner, args);
+}
+
+function GAuth(fn, args, cb) {
+  G(fn, [S.token].concat(args || []), cb);
+}
+</script>
+</body>
+</html>
